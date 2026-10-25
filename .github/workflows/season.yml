@@ -16,7 +16,9 @@ jobs:
         with:
           node-version: 22
       - name: run this week's season
-        run: node bin/duel.js season builtin:greedy bots/greedy.mjs bots/adapt.mjs bots/patient.mjs builtin:random --out results/week.json
+        run: |
+          mkdir -p results
+          node bin/duel.js season builtin:greedy bots/greedy.mjs bots/adapt.mjs bots/patient.mjs builtin:random --out results/week.json
       - name: append history line
         run: |
           printf '%s — %s\n' "$(date -u +%G-W%V)" "$(node -e "const t=require('./results/week.json').table; console.log(t.slice(0,3).map(r=>r.name+' '+r.rating).join(' · '))")" >> results/history.md
