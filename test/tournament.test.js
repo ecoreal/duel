@@ -30,24 +30,18 @@ test('tournament: builtin bracket crowns a champion and records re-simulable mov
   const agents = N(4).map((a, i) => ({ ...a, cmd: i % 2 ? 'builtin:random' : 'builtin:greedy' }));
   const t = await runTournament(agents, async (A, B, matchIndex) => {
     const seed = 900 + matchIndex;
-    const { movesA, movesB } = await Promise.all([0, 1]).then(async () => {
-      // drive builtins turn by turn
-      const mA = [], mB = [];
-      for (let turn = 1; turn <= 40; turn++) {
-        const sim = play(seed, mA, mB, DEFAULT_GAME);
-        if (sim.result.stop !== 'moves') break;
-        const last = sim.log[sim.log.length - 1] ?? { hp: [100, 100], charged: [false, false] };
-        const [ra, rb] = await Promise.all([
-          askAgent(A.cmd, agentView(sim.log, 0, turn, DEFAULT_GAME)),
-          askAgent(B.cmd, agentView(sim.log, 1, turn, DEFAULT_GAME)),
-        ]);
-        mA.push(ra.move); mB.push(rb.move);
-        void last;
-      }
-      return [mA, mB];
-    });
-    const { result } = play(seed, movesA, movesB, DEFAULT_GAME);
-    return { winnerName: result.winner === 'a' ? A.name : result.winner === 'b' ? B.name : A.name, seed, moves: { a: movesA, b: movesB } };
+    const mA = [], mB = [];
+    for (let turn = 1; turn <= 40; turn++) {
+      const sim = play(seed, mA, mB, DEFAULT_GAME);
+      if (sim.result.stop !== 'moves') break;
+      const [ra, rb] = await Promise.all([
+        askAgent(A.cmd, agentView(sim.log, 0, turn, DEFAULT_GAME)),
+        askAgent(B.cmd, agentView(sim.log, 1, turn, DEFAULT_GAME)),
+      ]);
+      mA.push(ra.move); mB.push(rb.move);
+    }
+    const { result } = play(seed, mA, mB, DEFAULT_GAME);
+    return { winnerName: result.winner === 'a' ? A.name : result.winner === 'b' ? B.name : A.name, seed, moves: { a: mA, b: mB } };
   }, 900);
   assert.ok(t.champion);
   assert.equal(t.rounds.length, 2); // 4 agents → 2 rounds

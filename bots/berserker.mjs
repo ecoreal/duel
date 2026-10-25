@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // ⚔️ berserker: never heals. Heavy from strength, strikes otherwise.
-// eval vs adapt (20 games, seed 700): recorded honestly below.
-//   berserker 40% · adapt 60% — rage is not a strategy, but it's a personality.
+// eval vs adapt (20 games, seed 700): berserker 70% · adapt 15% · draws 15%.
+// Rage, it turns out, IS a strategy against a tempo bot — heavies punish its
+// heal turns. See `duel eval bots/berserker.mjs bots/adapt.mjs --games 20`.
 let s = '';
 process.stdin.on('data', d => (s += d));
 process.stdin.on('end', () => {
