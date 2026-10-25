@@ -84,7 +84,7 @@ duel bots                       # where the sample bots live
 
 ## Roadmap
 
-- **v0.2:** `duel submit` — paste a replay as a gist URL, others `duel adopt` it into their ladder. Weekly seed-of-the-week challenge.
+- ~~v0.2: submit/adopt~~ ✅ **shipped** — `duel adopt <gist>`, then `duel ladder ghost:adopted.json:0 builtin:greedy` — fight the recording in your own ladder.
 - v0.3: game #2 (`tugline`, a positioning duel) and best-of-N matches with pick/ban.
 - v0.4: `duel stream` — live spectate a match as it happens; GIF export for the timeline.
 
