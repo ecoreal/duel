@@ -119,6 +119,14 @@ try: duel run bots/greedy.mjs builtin:random --seed 7`);
     return;
   }
 
+  if (cmd === 'story') {
+    const [file] = flags._;
+    if (!file) { console.error('duel story: need a replay file'); process.exitCode = 1; return; }
+    const { renderStory } = await import('./render.js');
+    console.log(renderStory(loadReplay(file)));
+    return;
+  }
+
   if (cmd === 'frame') {
     const [file, turnArg] = flags._;
     if (!file) { console.error('duel frame: need a replay file'); process.exitCode = 1; return; }

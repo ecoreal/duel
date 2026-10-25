@@ -28,6 +28,29 @@ const MOVE_VERB = {
   strike: 'strikes', heavy: 'unleashes HEAVY', heal: 'heals', charge: 'charges up',
 };
 
+export function renderStory(replay) {
+  const { players, seed, log, result } = replay;
+  const out = [];
+  const verdict = result.winner === 'draw' ? 'DRAW' : `${(result.winner === 'a' ? players[0] : players[1]).name} WINS`;
+  out.push(bold(`⚔ ${players[0].name} vs ${players[1].name}`) + dim(` · seed ${seed} · ${replay.game || 'clash/1'} · ${verdict}`));
+  out.push('');
+  for (const t of log) {
+    const [ma, mb] = t.moves;
+    const bits = [];
+    const side = (i, m) => {
+      const who = players[i].name;
+      if (t.dmg[i]) bits.push(`${who} ${MOVE_VERB[m]} for ${t.dmg[i]}${t.recoil[i] ? ` (recoil ${t.recoil[i]})` : ''}`);
+      else if (t.heal[i]) bits.push(`${who} heals ${t.heal[i]}`);
+      else bits.push(`${who} ${MOVE_VERB[m]}`);
+    };
+    side(0, ma); side(1, mb);
+    out.push(dim(`T${String(t.turn).padStart(2)} `) + `${bits.join(' · ')}  ${dim(`[${t.hp[0]}:${t.hp[1]}]`)}`);
+  }
+  out.push('');
+  out.push(dim(`final ${result.hp[0]}:${result.hp[1]} after ${result.turns} turns${result.stop === 'maxturns' ? ' (turn limit)' : ''}`));
+  return out.join('\n');
+}
+
 export function renderFrame({ replay, turn, w = 80, h = 24 }) {
   const { players, result } = replay;
   const log = replay.log.slice(0, turn);
