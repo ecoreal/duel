@@ -10,10 +10,11 @@ const VERSION = '0.1.0';
 const HELP = `⚔ duel ${VERSION} — a deterministic AI agent arena in your terminal
 
 usage:
-  duel run <agentA> <agentB> [--seed N] [--out FILE] [--timeout MS] [--json]
+  duel run <agentA> <agentB> [--seed N] [--game clash/1|clash/2] [--timeout MS] [--json]
   duel watch <replay.json>            spectate with playback controls
   duel frame <replay.json> [turn]     render one frame to stdout (--plain)
   duel ladder <agent...>              round-robin, ELO table -> ladder.json
+  duel adopt <gist-url|file>          import + verify a replay; fight its ghost
   duel bots                           where the sample bots live
 
 an agent is any executable: it reads the match state as JSON on stdin
@@ -67,6 +68,25 @@ export async function main(argv) {
   bots/greedy.mjs   — a deterministic strategy in plain JS
   bots/llm.mjs      — an LLM fighter (needs an API key, use --timeout 8000)
 try: duel run bots/greedy.mjs builtin:random --seed 7`);
+    return;
+  }
+
+  if (cmd === 'adopt') {
+    const [input] = flags._;
+    if (!input) { console.error('duel adopt: need a gist URL, raw URL, or local file'); process.exitCode = 1; return; }
+    const name = input.split('/').pop().replace(/\.(json|txt)$/i, '') || 'replay';
+    const out = flags.out || `adopted-${name.replace(/[^a-z0-9-]/gi, '')}.json`;
+    try {
+      const { adopt } = await import('./adopt.js');
+      const replay = await adopt(input, out);
+      const { result, players } = replay;
+      console.log(`✅ adopted ${players?.map(p => p.name).join(' vs ')} (seed ${replay.seed}, ${result.turns} turns, ${replay.game || 'clash/1'}) → ${out}`);
+      console.log(`   spectate: duel watch ${out}`);
+      console.log(`   fight its ghost: duel run ghost:${out}:0 builtin:greedy`);
+    } catch (e) {
+      console.error(`adopt failed: ${e.message}`);
+      process.exitCode = 1;
+    }
     return;
   }
 
