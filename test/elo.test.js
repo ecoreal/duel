@@ -16,3 +16,11 @@ test('rating update is zero-sum and moves the right way', () => {
   assert.equal(rc, rb); // a loss mirrors a win
   assert.equal(rd, ra);
 });
+
+test('season seeds derive from the ISO week (deterministic)', async () => {
+  const { seasonSeed } = await import('../src/season.mjs');
+  const sun = seasonSeed(new Date('2026-10-25T00:00:00Z')); // W43 (ISO weeks end Sunday)
+  const mon = seasonSeed(new Date('2026-10-26T00:00:00Z')); // W44 starts Monday
+  assert.equal(mon - sun, 1);
+  assert.equal(seasonSeed(new Date('2026-10-21T00:00:00Z')), sun); // same W43
+});

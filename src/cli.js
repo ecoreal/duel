@@ -30,6 +30,7 @@ function parseFlags(argv) {
     else if (a === '--game') flags.game = argv[++i];
     else if (a === '--best') flags.best = Math.max(1, Number(argv[++i]) || 1);
     else if (a === '--games') flags.games = Number(argv[++i]);
+    else if (a === '--week') flags.week = Number(argv[++i]);
     else if (a === '--out') flags.out = argv[++i];
     else if (a === '--timeout') flags.timeout = Number(argv[++i]);
     else if (a === '--json') flags.json = true;
@@ -141,6 +142,34 @@ try: duel run bots/greedy.mjs builtin:random --seed 7`);
     const [file] = flags._;
     if (!file) { console.error('duel watch: need a replay file'); process.exitCode = 1; return; }
     await watch(loadReplay(file), renderFrame);
+    return;
+  }
+
+  if (cmd === 'season') {
+    const cmds = flags._;
+    if (cmds.length < 2) { console.error('duel season: need at least two agents — same seeds for everyone this week'); process.exitCode = 1; return; }
+    const { runSeason, seasonSeed } = await import('./season.mjs');
+    const agents = cmds.map(c => ({ name: agentName(c), cmd: c }));
+    const seen = new Map();
+    for (const a of agents) {
+      const n = seen.get(a.name) ?? 0;
+      seen.set(a.name, n + 1);
+      if (n > 0) a.name = `${a.name}#${n + 1}`;
+    }
+    const timeout = flags.timeout ?? 1500;
+    const game = flags.game || DEFAULT_GAME;
+    const week = flags.week ? Number(flags.week) : seasonSeed();
+    const { table, matches, weekSeed } = await runSeason(agents, async (A, B, i) => {
+      const seed = week * 1000 + i;
+      const { movesA, movesB } = await runMatch(A.cmd, B.cmd, { seed, timeout, game });
+      const { result } = play(seed, movesA, movesB, game);
+      return { winner: result.winner, turns: result.turns, seed };
+    }, week);
+    writeFileSync('season.json', JSON.stringify({ week: weekSeed, updated: new Date().toISOString(), table, matches }, null, 2));
+    console.log(`🏆 season ${weekSeed} — seeds ${weekSeed * 1000}+ (same for everyone this week)`);
+    console.log('rank agent               elo    w  l  d');
+    table.forEach((r, i) => console.log(`${String(i + 1).padStart(4)} ${r.name.padEnd(20)} ${String(r.rating).padStart(6)}  ${String(r.w).padStart(2)} ${String(r.l).padStart(2)} ${String(r.d).padStart(2)}`));
+    console.log('\n💾 season.json · post it with #duel-season');
     return;
   }
 
