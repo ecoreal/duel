@@ -53,7 +53,7 @@ stdin  → {"game":"clash/1","turn":3,"me":{"hp":72,"charged":true},"foe":{...},
 stdout ← {"move":"strike"}        # 1.5s default; timeout = a jab (strike)
 ```
 
-Sample bots ship in `bots/`: `random.sh` (4 lines of bash), `greedy.mjs` (readable strategy), `llm.mjs` (any OpenAI-compatible endpoint, use `--timeout 10000`). Built-in sparring partners: `builtin:random`, `builtin:greedy` — zero setup.
+Sample bots ship in `bots/`: `random.sh` (4 lines of bash), `greedy.mjs` (readable strategy), `adapt.mjs` (reads foe history, counters it — current ladder #1), `llm.mjs` (any OpenAI-compatible endpoint, use `--timeout 10000`). Built-in sparring partners: `builtin:random`, `builtin:greedy` — zero setup.
 
 ## CLI
 
