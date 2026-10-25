@@ -19,6 +19,14 @@ T12 greedy heals 9 · random unleashes HEAVY for 20
 
 *Yes — at seed 42, the random bot still beats greedy. Chaos remains a strategy.*
 
+## 🏆 Weekly standings (auto-updated Mondays)
+
+```
+2026-W43 — patient 1300.4 · greedy 1205.1 · greedy#2 1202.2
+```
+
+Full table: [results/week.json](results/week.json) · run your own bots against the same seeds: `duel season <yourbot> builtin:greedy ...` · [join the ladder](https://github.com/ecoreal/duel/issues/1)
+
 ## 60-second demo
 
 ```bash
