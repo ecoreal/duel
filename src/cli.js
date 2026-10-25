@@ -16,6 +16,7 @@ usage:
   duel eval <A> <B> [--games 50]      statistical matchup report (sides swapped)
   duel season <agent...>              weekly ladder — same seeds for everyone
   duel tournament <agent...>          single-elimination bracket (--seed, --best)
+  duel film <replay> [--every 3]      arena storyboard frames (paste-ready)
   duel rules [game]                   print the rulesets
   duel ladder <agent...>              round-robin, ELO table -> ladder.json
   duel adopt <gist-url|file>          import + verify a replay; fight its ghost
@@ -34,6 +35,8 @@ function parseFlags(argv) {
     else if (a === '--best') flags.best = Math.max(1, Number(argv[++i]) || 1);
     else if (a === '--games') flags.games = Number(argv[++i]);
     else if (a === '--week') flags.week = Number(argv[++i]);
+    else if (a === '--every') flags.every = Number(argv[++i]);
+    else if (a === '--height') flags.height = Number(argv[++i]);
     else if (a === '--out') flags.out = argv[++i];
     else if (a === '--timeout') flags.timeout = Number(argv[++i]);
     else if (a === '--json') flags.json = true;
@@ -256,6 +259,27 @@ try: duel run bots/greedy.mjs builtin:random --seed 7`);
     console.log(`⚔ eval · ${nameA} vs ${nameB} · ${games} games (sides swapped, seeds ${seedBase}+) · ${game}`);
     console.log(`   ${nameA.padEnd(20)} ${pct(wa)}   ${nameB.padEnd(20)} ${pct(wb)}${dr ? `   draws ${pct(dr)}` : ''}`);
     console.log(dim(`   avg ${turns / games} turns/game · ${jabs} invalid/late moves`));
+    return;
+  }
+
+  if (cmd === 'film') {
+    const [file] = flags._;
+    if (!file) { console.error('duel film: need a replay file'); process.exitCode = 1; return; }
+    const every = Math.max(1, flags.every ?? 3);
+    const replay = loadReplay(file);
+    const total = replay.result.turns;
+    const stops = [];
+    for (let t = every; t <= total; t += every) stops.push(t);
+    if (stops[stops.length - 1] !== total) stops.push(total);
+    // highlight turns: biggest single hit + the final turn
+    let biggest = { turn: 1, dmg: 0 };
+    for (const t of replay.log) for (const d of t.dmg) if (d > biggest.dmg) biggest = { turn: t.turn, dmg: d };
+    console.log(dim(`⚔ duel film · ${file} · ${stops.length} frames (every ${every} turns)`));
+    for (const turn of stops) {
+      const tag = turn === biggest.turn ? `  ← biggest hit (${biggest.dmg})` : turn === total ? '  ← final' : '';
+      console.log(dim(`\n── turn ${turn}/${total}${tag} ${'─'.repeat(30)}`));
+      console.log(renderFrame({ replay, turn, w: flags.width || 72, h: flags.height || 14 }).map(l => (flags.plain ? vis(l) : l)).join('\n'));
+    }
     return;
   }
 

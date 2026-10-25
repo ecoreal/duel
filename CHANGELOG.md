@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- 🎬 `duel film <replay> [--every N]` — arena storyboard frames with biggest-hit/final tags
 - 🥇 `duel tournament` — single-elimination bracket with deterministic seeding, byes at odd positions, best-of-N + sudden death; tournament.json records every match's seed and moves
 - 📋 `duel rules [game]` — rulesets printed in the CLI
 - ⚔️ `bots/berserker.mjs` — never heals (honest eval in its header)

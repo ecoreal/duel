@@ -24,3 +24,23 @@ test('season seeds derive from the ISO week (deterministic)', async () => {
   assert.equal(mon - sun, 1);
   assert.equal(seasonSeed(new Date('2026-10-21T00:00:00Z')), sun); // same W43
 });
+
+test('film frames: stops cover every N turns plus the final', async () => {
+  const { saveReplay } = await import('../src/replay.js');
+  const { mkdtempSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const dir = mkdtempSync(join(tmpdir(), 'duel-film-'));
+  const file = join(dir, 'r.json');
+  saveReplay(file, { seed: 42, players: [{ name: 'a' }, { name: 'b' }], movesA: Array(40).fill('strike'), movesB: Array(40).fill('strike') });
+  const { loadReplay } = await import('../src/replay.js');
+  const replay = loadReplay(file);
+  const every = 6, total = replay.result.turns;
+  const stops = [];
+  for (let t = every; t <= total; t += every) stops.push(t);
+  if (stops[stops.length - 1] !== total) stops.push(total);
+  assert.ok(stops.length >= 1);
+  assert.equal(stops[stops.length - 1], total);
+  assert.deepEqual(stops, [...new Set(stops)]);
+  rmSync(dir, { recursive: true, force: true });
+});
