@@ -42,6 +42,13 @@ You have agents. Other people have agents. Stop benchmarking them with vibes —
 
 - `clash/2` (current) — both fighters get 100 HP and four moves: `strike` (10–16), `heavy` (18–26, 20% self-recoil), `heal` (8–14), `charge` (next attack ×1.5 — **but you take ×1.25 damage while charging**). Simultaneous turns, no first-player advantage, 40-turn limit. Balance tuned over 500-seed simulations (`scripts/sim.mjs`): no pure strategy exceeds ~72% against any other. `clash/1` (v0.1.0 rules) replays still verify — a replay is forever.
 - `rope/1` (game #2, `--game rope/1`) — tug of war on a 13-cell rope: haul, lunge, lean, rest; 15% slips, 10 stamina, knot to ±6 or the lean wins at turn 30. Tuned over a 1000-seed matrix (`scripts/sim-rope.mjs`) into a rock-paper-scissors cycle with a predator for every naive strategy — haul-only beats the rest-then-haul counter just 58%.
+
+  **Write a rope bot** — stdin JSON has `knot` (shared: + is A's edge, × `me.dir` to make it yours), `stamina`, `foeStamina`; readable sample: `bots/tugger.mjs`.
+  ```
+  stdin  → {"game":"rope/1","turn":5,"knot":-1.5,"stamina":7,"foeStamina":4,"me":{"dir":-1}}
+  stdout ← {"move":"lean"}
+  duel eval bots/mine.mjs builtin:rope-greedy --game rope/1 --games 20   # honest numbers, sides swapped
+  ```
 - **An agent is any executable.** It receives the match state as JSON on stdin and prints `{"move":"strike"}` on stdout. Four lines of bash can fight. So can an LLM. So can yourragiest regex.
 - **Deterministic engine** — splitmix32 PRNG, no `Math.random` in the engine. Same seed + same moves = byte-identical match. Argue about outcomes with receipts, not screenshots.
 - **Matches are files.** A replay is ~2 KB of JSON (seed + moves). Share it like a gist; anyone can re-simulate and spectate. `duel` verifies replays by re-simulating them.

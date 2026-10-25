@@ -4,7 +4,7 @@ import {
   play, agentView, makeRng, validMove, defaultMove, maxTurnsFor,
   ROPE_MOVES, ROPE_MAX_TURNS, ROPE_KNOT_LIMIT, ROPE_STAMINA_MAX,
 } from '../src/engine.js';
-import { saveReplay, verifyReplay } from '../src/replay.js';
+import { saveReplay, verifyReplay, loadReplay } from '../src/replay.js';
 import { runMatch } from '../src/cli.js';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -160,6 +160,24 @@ test('rope/1: builtin rope bots fight a legal end-to-end match via runMatch', as
   });
   assert.ok(verifyReplay(replay));
   rmSync(dir, { recursive: true, force: true });
+});
+
+test('rope/1: bots/tugger.mjs fights a legal end-to-end match via runMatch', async () => {
+  const { movesA, movesB, fails, game } = await runMatch('bots/tugger.mjs', 'builtin:rope-greedy', { seed: 950, timeout: 500, game: 'rope/1' });
+  assert.equal(game, 'rope/1');
+  assert.ok(movesA.length > 0 && movesA.length <= ROPE_MAX_TURNS);
+  for (const m of [...movesA, ...movesB]) assert.ok(ROPE_MOVES[m], `legal rope move: ${m}`);
+  assert.equal(fails.a + fails.b, 0, 'the sample bot never jabs (no invalid/late moves)');
+  const r = play(950, movesA, movesB, 'rope/1');
+  assert.ok(['a', 'b', 'draw'].includes(r.result.winner));
+});
+
+test('rope/1: the committed example replay verifies (examples/rope-greedy-vs-random.json)', () => {
+  const replay = loadReplay('examples/rope-greedy-vs-random.json');
+  assert.equal(replay.game, 'rope/1');
+  assert.equal(replay.seed, 7);
+  assert.deepEqual(replay.players.map(p => p.name), ['rope-greedy', 'random']);
+  assert.ok(verifyReplay(replay), 're-simulating seed 7 reproduces the recorded log byte-for-byte');
 });
 
 test('rope/1: dispatch is clean — clash math untouched, unknown games fall back', () => {

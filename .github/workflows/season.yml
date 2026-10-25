@@ -19,9 +19,15 @@ jobs:
         run: |
           mkdir -p results
           node bin/duel.js season builtin:greedy bots/greedy.mjs bots/adapt.mjs bots/patient.mjs builtin:random --out results/week.json
+      - name: run this week's rope ladder
+        run: |
+          node bin/duel.js season builtin:rope-greedy bots/tugger.mjs --game rope/1 --out results/rope-week.json
       - name: append history line
         run: |
           printf '%s — %s\n' "$(date -u +%G-W%V)" "$(node -e "const t=require('./results/week.json').table; console.log(t.slice(0,3).map(r=>r.name+' '+r.rating).join(' · '))")" >> results/history.md
+      - name: append rope history line
+        run: |
+          printf 'rope: %s — %s\n' "$(date -u +%G-W%V)" "$(node -e "const t=require('./results/rope-week.json').table; console.log(t[0].name+' '+t[0].rating)")" >> results/history.md
       - name: commit results
         run: |
           git config user.name "duel-bot"
