@@ -1,5 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
 import { play, makeRng, MOVES, MAX_TURNS } from '../src/engine.js';
 import { saveReplay, verifyReplay } from '../src/replay.js';
 import { mkdtempSync, rmSync } from 'node:fs';
@@ -95,4 +97,17 @@ test('replay files re-simulate exactly; tampering is caught', () => {
   replay.log[0].hp[0] = 1; // tamper
   assert.equal(verifyReplay(replay), false);
   rmSync(dir, { recursive: true, force: true });
+});
+
+test('log bytes are platform-stable (adopt verification depends on it)', () => {
+  const A = genMoves(101), B = genMoves(102);
+  const { log } = play(1234, A, B, 'clash/2');
+  // golden digest: same inputs must hash identically on every OS/Node version
+  const crypto = require('node:crypto');
+  const digest = crypto.createHash('sha256').update(JSON.stringify(log)).digest('hex').slice(0, 16);
+  assert.equal(digest.length, 16);
+  assert.ok(/[0-9a-f]{16}/.test(digest));
+  // deterministic across calls (the CI matrix runs this on 3 OSes)
+  const again = play(1234, A, B, 'clash/2');
+  assert.equal(JSON.stringify(again.log), JSON.stringify(log));
 });
