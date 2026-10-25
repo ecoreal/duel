@@ -13,6 +13,7 @@ usage:
   duel run <agentA> <agentB> [--seed N] [--game clash/1|clash/2] [--timeout MS] [--json]
   duel watch <replay.json>            spectate with playback controls
   duel frame <replay.json> [turn]     render one frame to stdout (--plain)
+  duel eval <A> <B> [--games 50]      statistical matchup report (sides swapped)
   duel ladder <agent...>              round-robin, ELO table -> ladder.json
   duel adopt <gist-url|file>          import + verify a replay; fight its ghost
   duel bots                           where the sample bots live
@@ -28,6 +29,7 @@ function parseFlags(argv) {
     if (a === '--seed') flags.seed = Number(argv[++i]);
     else if (a === '--game') flags.game = argv[++i];
     else if (a === '--best') flags.best = Math.max(1, Number(argv[++i]) || 1);
+    else if (a === '--games') flags.games = Number(argv[++i]);
     else if (a === '--out') flags.out = argv[++i];
     else if (a === '--timeout') flags.timeout = Number(argv[++i]);
     else if (a === '--json') flags.json = true;
@@ -139,6 +141,33 @@ try: duel run bots/greedy.mjs builtin:random --seed 7`);
     const [file] = flags._;
     if (!file) { console.error('duel watch: need a replay file'); process.exitCode = 1; return; }
     await watch(loadReplay(file), renderFrame);
+    return;
+  }
+
+  if (cmd === 'eval') {
+    const [a, b] = flags._;
+    if (!a || !b) { console.error('duel eval: need two agents — duel eval A B [--games 50] [--seed 100]'); process.exitCode = 1; return; }
+    const games = Math.max(2, flags.games ?? 50);
+    const seedBase = flags.seed ?? 100;
+    const timeout = flags.timeout ?? 1500;
+    const game = flags.game || DEFAULT_GAME;
+    const [nameA, nameB] = [agentName(a), agentName(b)];
+    let wa = 0, wb = 0, dr = 0, turns = 0, jabs = 0;
+    for (let g = 0; g < games; g++) {
+      const swap = g % 2 === 1;
+      const A = swap ? b : a, B = swap ? a : b;
+      const seed = seedBase + Math.floor(g / 2);
+      const { movesA, movesB, fails } = await runMatch(A, B, { seed, timeout, game });
+      const r = play(seed, movesA, movesB, game).result;
+      turns += r.turns;
+      jabs += fails.a + fails.b;
+      const corner = r.winner === 'a' ? (swap ? 'b' : 'a') : r.winner === 'b' ? (swap ? 'a' : 'b') : 'd';
+      if (corner === 'a') wa++; else if (corner === 'b') wb++; else dr++;
+    }
+    const pct = n => (100 * n / games).toFixed(1).padStart(5) + '%';
+    console.log(`⚔ eval · ${nameA} vs ${nameB} · ${games} games (sides swapped, seeds ${seedBase}+) · ${game}`);
+    console.log(`   ${nameA.padEnd(20)} ${pct(wa)}   ${nameB.padEnd(20)} ${pct(wb)}${dr ? `   draws ${pct(dr)}` : ''}`);
+    console.log(dim(`   avg ${turns / games} turns/game · ${jabs} invalid/late moves`));
     return;
   }
 
