@@ -28,13 +28,18 @@ export async function watch(replay, renderFrame) {
   function startTimer() { clearInterval(timer); timer = setInterval(tick, speed); }
 
   function onData(buf) {
-    const k = buf[0];
-    if (k === 3 || k === 113) return finish();                     // ctrl-c / q
-    if (k === 32) paused = !paused;                                 // space
-    else if (k === 27 && buf[1] === 91 && buf[2] === 68) turn = Math.max(0, turn - 1);   // ←
-    else if (k === 27 && buf[1] === 91 && buf[2] === 67) turn = Math.min(total, turn + 1); // →
-    else if (k === 43 && speed > 100) { speed -= 100; startTimer(); }                   // +
-    else if (k === 45 && speed < 1500) { speed += 100; startTimer(); }                  // -
+    for (let i = 0; i < buf.length; i++) {
+      const k = buf[i];
+      if (k === 27) { // arrow keys are 3-byte escapes; batched input needs scanning
+        if (buf[i + 1] === 91 && buf[i + 2] === 68) { turn = Math.max(0, turn - 1); i += 2; }
+        else if (buf[i + 1] === 91 && buf[i + 2] === 67) { turn = Math.min(total, turn + 1); i += 2; }
+        continue;
+      }
+      if (k === 3 || k === 113) return finish();                     // ctrl-c / q
+      if (k === 32) paused = !paused;                                 // space
+      else if (k === 43 && speed > 100) { speed -= 100; startTimer(); }                   // +
+      else if (k === 45 && speed < 1500) { speed += 100; startTimer(); }                  // -
+    }
     draw();
   }
 
