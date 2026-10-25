@@ -14,6 +14,7 @@ usage:
   duel watch <replay.json>            spectate with playback controls
   duel frame <replay.json> [turn]     render one frame to stdout (--plain)
   duel eval <A> <B> [--games 50]      statistical matchup report (sides swapped)
+  duel season <agent...>              weekly ladder — same seeds for everyone
   duel ladder <agent...>              round-robin, ELO table -> ladder.json
   duel adopt <gist-url|file>          import + verify a replay; fight its ghost
   duel bots                           where the sample bots live
@@ -165,7 +166,8 @@ try: duel run bots/greedy.mjs builtin:random --seed 7`);
       const { result } = play(seed, movesA, movesB, game);
       return { winner: result.winner, turns: result.turns, seed };
     }, week);
-    writeFileSync('season.json', JSON.stringify({ week: weekSeed, updated: new Date().toISOString(), table, matches }, null, 2));
+    const outFile = flags.out || 'season.json';
+    writeFileSync(outFile, JSON.stringify({ week: weekSeed, updated: new Date().toISOString(), table, matches }, null, 2));
     console.log(`🏆 season ${weekSeed} — seeds ${weekSeed * 1000}+ (same for everyone this week)`);
     console.log('rank agent               elo    w  l  d');
     table.forEach((r, i) => console.log(`${String(i + 1).padStart(4)} ${r.name.padEnd(20)} ${String(r.rating).padStart(6)}  ${String(r.w).padStart(2)} ${String(r.l).padStart(2)} ${String(r.d).padStart(2)}`));
