@@ -1,0 +1,398 @@
+{
+  "version": 1,
+  "game": "clash/1",
+  "seed": 42,
+  "players": [
+    {
+      "name": "greedy"
+    },
+    {
+      "name": "random"
+    }
+  ],
+  "moves": [
+    [
+      "charge",
+      "heavy"
+    ],
+    [
+      "strike",
+      "heavy"
+    ],
+    [
+      "charge",
+      "heavy"
+    ],
+    [
+      "strike",
+      "heal"
+    ],
+    [
+      "charge",
+      "strike"
+    ],
+    [
+      "heal",
+      "charge"
+    ],
+    [
+      "heal",
+      "heal"
+    ],
+    [
+      "strike",
+      "strike"
+    ],
+    [
+      "heal",
+      "strike"
+    ],
+    [
+      "heal",
+      "strike"
+    ],
+    [
+      "heal",
+      "heavy"
+    ],
+    [
+      "heal",
+      "heavy"
+    ]
+  ],
+  "result": {
+    "winner": "b",
+    "hp": [
+      0,
+      43
+    ],
+    "turns": 12,
+    "stop": "winner"
+  },
+  "log": [
+    {
+      "turn": 1,
+      "moves": [
+        "charge",
+        "heavy"
+      ],
+      "dmg": [
+        0,
+        23
+      ],
+      "heal": [
+        0,
+        0
+      ],
+      "recoil": [
+        0,
+        0
+      ],
+      "hp": [
+        77,
+        100
+      ],
+      "charged": [
+        true,
+        false
+      ]
+    },
+    {
+      "turn": 2,
+      "moves": [
+        "strike",
+        "heavy"
+      ],
+      "dmg": [
+        19,
+        21
+      ],
+      "heal": [
+        0,
+        0
+      ],
+      "recoil": [
+        0,
+        0
+      ],
+      "hp": [
+        56,
+        81
+      ],
+      "charged": [
+        false,
+        false
+      ]
+    },
+    {
+      "turn": 3,
+      "moves": [
+        "charge",
+        "heavy"
+      ],
+      "dmg": [
+        0,
+        26
+      ],
+      "heal": [
+        0,
+        0
+      ],
+      "recoil": [
+        0,
+        0
+      ],
+      "hp": [
+        30,
+        81
+      ],
+      "charged": [
+        true,
+        false
+      ]
+    },
+    {
+      "turn": 4,
+      "moves": [
+        "strike",
+        "heal"
+      ],
+      "dmg": [
+        28,
+        0
+      ],
+      "heal": [
+        0,
+        13
+      ],
+      "recoil": [
+        0,
+        0
+      ],
+      "hp": [
+        30,
+        66
+      ],
+      "charged": [
+        false,
+        false
+      ]
+    },
+    {
+      "turn": 5,
+      "moves": [
+        "charge",
+        "strike"
+      ],
+      "dmg": [
+        0,
+        14
+      ],
+      "heal": [
+        0,
+        0
+      ],
+      "recoil": [
+        0,
+        0
+      ],
+      "hp": [
+        16,
+        66
+      ],
+      "charged": [
+        true,
+        false
+      ]
+    },
+    {
+      "turn": 6,
+      "moves": [
+        "heal",
+        "charge"
+      ],
+      "dmg": [
+        0,
+        0
+      ],
+      "heal": [
+        8,
+        0
+      ],
+      "recoil": [
+        0,
+        0
+      ],
+      "hp": [
+        24,
+        66
+      ],
+      "charged": [
+        true,
+        true
+      ]
+    },
+    {
+      "turn": 7,
+      "moves": [
+        "heal",
+        "heal"
+      ],
+      "dmg": [
+        0,
+        0
+      ],
+      "heal": [
+        13,
+        9
+      ],
+      "recoil": [
+        0,
+        0
+      ],
+      "hp": [
+        37,
+        75
+      ],
+      "charged": [
+        true,
+        true
+      ]
+    },
+    {
+      "turn": 8,
+      "moves": [
+        "strike",
+        "strike"
+      ],
+      "dmg": [
+        27,
+        21
+      ],
+      "heal": [
+        0,
+        0
+      ],
+      "recoil": [
+        0,
+        0
+      ],
+      "hp": [
+        16,
+        48
+      ],
+      "charged": [
+        false,
+        false
+      ]
+    },
+    {
+      "turn": 9,
+      "moves": [
+        "heal",
+        "strike"
+      ],
+      "dmg": [
+        0,
+        11
+      ],
+      "heal": [
+        12,
+        0
+      ],
+      "recoil": [
+        0,
+        0
+      ],
+      "hp": [
+        17,
+        48
+      ],
+      "charged": [
+        false,
+        false
+      ]
+    },
+    {
+      "turn": 10,
+      "moves": [
+        "heal",
+        "strike"
+      ],
+      "dmg": [
+        0,
+        10
+      ],
+      "heal": [
+        9,
+        0
+      ],
+      "recoil": [
+        0,
+        0
+      ],
+      "hp": [
+        16,
+        48
+      ],
+      "charged": [
+        false,
+        false
+      ]
+    },
+    {
+      "turn": 11,
+      "moves": [
+        "heal",
+        "heavy"
+      ],
+      "dmg": [
+        0,
+        25
+      ],
+      "heal": [
+        12,
+        0
+      ],
+      "recoil": [
+        0,
+        5
+      ],
+      "hp": [
+        3,
+        43
+      ],
+      "charged": [
+        false,
+        false
+      ]
+    },
+    {
+      "turn": 12,
+      "moves": [
+        "heal",
+        "heavy"
+      ],
+      "dmg": [
+        0,
+        25
+      ],
+      "heal": [
+        10,
+        0
+      ],
+      "recoil": [
+        0,
+        0
+      ],
+      "hp": [
+        0,
+        43
+      ],
+      "charged": [
+        false,
+        false
+      ]
+    }
+  ]
+}
