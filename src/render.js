@@ -2,7 +2,7 @@
 // render(state) -> lines, no side effects, testable headless.
 const ANSI = /\x1b\[[0-9;]*m/g;
 export const vis = s => String(s).replace(ANSI, '');
-const dim = s => `\x1b[2m${s}\x1b[0m`;
+export const dim = s => `\x1b[2m${s}\x1b[0m`;
 const bold = s => `\x1b[1m${s}\x1b[0m`;
 const pad = (s, n) => { const l = vis(s).length; return l >= n ? s : s + ' '.repeat(n - l); };
 const cut = (s, n) => { s = String(s); return vis(s).length <= n ? s : s.slice(0, Math.max(0, n - 1)) + '…'; };

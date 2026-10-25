@@ -2,7 +2,7 @@ import { play, agentView, MAX_TURNS, DEFAULT_GAME } from './engine.js';
 import { askAgent, agentName } from './agent.js';
 import { saveReplay, loadReplay, verifyReplay } from './replay.js';
 import { runLadder } from './elo.js';
-import { renderFrame, vis } from './render.js';
+import { renderFrame, vis, dim } from './render.js';
 import { watch } from './tui.js';
 import { writeFileSync } from 'node:fs';
 
@@ -27,6 +27,7 @@ function parseFlags(argv) {
     const a = argv[i];
     if (a === '--seed') flags.seed = Number(argv[++i]);
     else if (a === '--game') flags.game = argv[++i];
+    else if (a === '--best') flags.best = Math.max(1, Number(argv[++i]) || 1);
     else if (a === '--out') flags.out = argv[++i];
     else if (a === '--timeout') flags.timeout = Number(argv[++i]);
     else if (a === '--json') flags.json = true;
@@ -96,6 +97,28 @@ try: duel run bots/greedy.mjs builtin:random --seed 7`);
     const seed = flags.seed ?? (Date.now() & 0x7fffffff);
     const timeout = flags.timeout ?? 1500;
     const game = flags.game || DEFAULT_GAME;
+    const best = flags.best ?? 1;
+    if (best > 1) {
+      // series: sides swap every game, seeds advance — variance can't hide
+      const [nameA, nameB] = [agentName(a), agentName(b)];
+      let ca = 0, cb = 0, cd = 0;
+      const prefix = flags.out ? flags.out.replace(/\.json$/, '') : `duel-${seed}`;
+      for (let g = 0; g < best; g++) {
+        const swap = g % 2 === 1;
+        const A = swap ? b : a, B = swap ? a : b;
+        const s = seed + g;
+        const { movesA, movesB } = await runMatch(A, B, { seed: s, timeout, game });
+        const r = play(s, movesA, movesB, game).result;
+        const winnerCorner = r.winner === 'a' ? (swap ? 'b' : 'a') : r.winner === 'b' ? (swap ? 'a' : 'b') : 'd';
+        if (winnerCorner === 'a') ca++; else if (winnerCorner === 'b') cb++; else cd++;
+        saveReplay(`${prefix}-g${g + 1}.json`, { seed: s, players: [{ name: agentName(A) }, { name: agentName(B) }], movesA, movesB, game });
+        const wn = winnerCorner === 'a' ? nameA : winnerCorner === 'b' ? nameB : 'draw';
+        console.log(dim(`  game ${g + 1}: ${wn} (${r.hp[0]}:${r.hp[1]}) → ${prefix}-g${g + 1}.json`));
+      }
+      console.log(`⚔ best-of-${best}: ${nameA} ${ca} — ${cb} ${nameB}${cd ? ` (${cd} draw)` : ''}`);
+      console.log(`   ${ca === cb ? 'series drawn' : ca > cb ? `${nameA} takes the series` : `${nameB} takes the series`}`);
+      return;
+    }
     const { movesA, movesB, fails } = await runMatch(a, b, { seed, timeout, game });
     const players = [{ name: agentName(a) }, { name: agentName(b) }];
     const out = flags.out || `duel-${seed}.json`;
