@@ -15,6 +15,8 @@ usage:
   duel frame <replay.json> [turn]     render one frame to stdout (--plain)
   duel eval <A> <B> [--games 50]      statistical matchup report (sides swapped)
   duel season <agent...>              weekly ladder — same seeds for everyone
+  duel tournament <agent...>          single-elimination bracket (--seed, --best)
+  duel rules [game]                   print the rulesets
   duel ladder <agent...>              round-robin, ELO table -> ladder.json
   duel adopt <gist-url|file>          import + verify a replay; fight its ghost
   duel bots                           where the sample bots live
@@ -143,6 +145,61 @@ try: duel run bots/greedy.mjs builtin:random --seed 7`);
     const [file] = flags._;
     if (!file) { console.error('duel watch: need a replay file'); process.exitCode = 1; return; }
     await watch(loadReplay(file), renderFrame);
+    return;
+  }
+
+  if (cmd === 'tournament') {
+    const cmds = flags._;
+    if (cmds.length < 2) { console.error('duel tournament: need at least two agents'); process.exitCode = 1; return; }
+    const { runTournament, renderBracket } = await import('./tournament.js');
+    const seed = flags.seed ?? (Date.now() & 0x7fffffff);
+    const timeout = flags.timeout ?? 1500;
+    const game = flags.game || DEFAULT_GAME;
+    const agents = cmds.map(c => ({ name: agentName(c), cmd: c }));
+    const seen = new Map();
+    for (const a of agents) {
+      const n = seen.get(a.name) ?? 0;
+      seen.set(a.name, n + 1);
+      if (n > 0) a.name = `${a.name}#${n + 1}`;
+    }
+    const best = flags.best ?? 1;
+    console.log(`🥇 bracket · seed ${seed} · ${game}${best > 1 ? ` · best-of-${best}` : ''}`);
+    const t = await runTournament(agents, async (A, B, matchIndex) => {
+      // best-of with side rotation, then sudden death until someone leads
+      let ca = 0, cb = 0, g = 0, lastSeed = null, lastMoves = null;
+      const need = best;
+      while (ca === cb || g < need) {
+        if (g >= need && ca !== cb) break;
+        const swap = (g + matchIndex) % 2 === 1;
+        const AG = swap ? B : A, BG = swap ? A : B;
+        const s = seed + matchIndex * 100 + g;
+        const { movesA, movesB } = await runMatch(AG.cmd, BG.cmd, { seed: s, timeout, game });
+        const r = play(s, movesA, movesB, game).result;
+        lastSeed = s;
+        lastMoves = swap ? [movesB, movesA] : [movesA, movesB]; // canonical corner order
+        const corner = r.winner === 'a' ? (swap ? 'b' : 'a') : r.winner === 'b' ? (swap ? 'a' : 'b') : 'd';
+        if (corner === 'a') ca++; else if (corner === 'b') cb++;
+        g++;
+        if (g > need + 8) break; // paranoia valve
+      }
+      return { winnerName: ca > cb ? A.name : B.name, seed: lastSeed, moves: { a: lastMoves[0], b: lastMoves[1] } };
+    }, seed);
+    console.log(renderBracket(t));
+    const outFile = flags.out || 'tournament.json';
+    writeFileSync(outFile, JSON.stringify({ seed, game, best, champion: t.champion.name, rounds: t.rounds }, null, 2));
+    console.log(`💾 ${outFile}`);
+    return;
+  }
+
+  if (cmd === 'rules') {
+    const { GAMES, MOVES } = await import('./engine.js');
+    const which = flags._[0];
+    for (const [id, r] of Object.entries(GAMES)) {
+      if (which && which !== id) continue;
+      console.log(`${id}  charge ×${r.chargeMult}${r.chargeOpening ? ` · opening ×${r.chargeOpening} (damage taken while charging)` : ''}`);
+    }
+    console.log(`moves: strike 10-16 · heavy 18-26 (20% recoil 5) · heal 8-14 (cap 100) · charge → ×mult next attack`);
+    console.log(`100 HP · simultaneous turns · 40-turn limit · HP compare decides at the limit`);
     return;
   }
 

@@ -1,0 +1,152 @@
+{
+  "seed": 42,
+  "game": "clash/2",
+  "best": 1,
+  "champion": "greedy#2",
+  "rounds": [
+    {
+      "round": 1,
+      "matches": [
+        {
+          "a": "greedy#2",
+          "b": null,
+          "winner": "greedy#2",
+          "seed": null,
+          "moves": null
+        },
+        {
+          "a": "patient",
+          "b": null,
+          "winner": "patient",
+          "seed": null,
+          "moves": null
+        },
+        {
+          "a": "greedy",
+          "b": null,
+          "winner": "greedy",
+          "seed": null,
+          "moves": null
+        },
+        {
+          "a": "random",
+          "b": "adapt",
+          "winner": "adapt",
+          "seed": 42,
+          "moves": {
+            "a": [
+              "strike",
+              "strike",
+              "strike",
+              "charge",
+              "strike",
+              "strike"
+            ],
+            "b": [
+              "strike",
+              "strike",
+              "charge",
+              "heavy",
+              "strike",
+              "heavy"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "matches": [
+        {
+          "a": "greedy#2",
+          "b": "patient",
+          "winner": "greedy#2",
+          "seed": 142,
+          "moves": {
+            "a": [
+              "strike",
+              "strike",
+              "strike",
+              "strike",
+              "strike",
+              "strike",
+              "heavy",
+              "heavy"
+            ],
+            "b": [
+              "charge",
+              "heavy",
+              "charge",
+              "heavy",
+              "heal",
+              "heal",
+              "heal",
+              "heal"
+            ]
+          }
+        },
+        {
+          "a": "greedy",
+          "b": "adapt",
+          "winner": "adapt",
+          "seed": 242,
+          "moves": {
+            "a": [
+              "strike",
+              "strike",
+              "strike",
+              "strike",
+              "strike",
+              "strike",
+              "heal",
+              "heal",
+              "heal"
+            ],
+            "b": [
+              "strike",
+              "strike",
+              "strike",
+              "strike",
+              "strike",
+              "strike",
+              "heavy",
+              "heavy",
+              "heavy"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "matches": [
+        {
+          "a": "greedy#2",
+          "b": "adapt",
+          "winner": "greedy#2",
+          "seed": 342,
+          "moves": {
+            "a": [
+              "strike",
+              "strike",
+              "strike",
+              "strike",
+              "strike",
+              "heavy",
+              "heavy"
+            ],
+            "b": [
+              "strike",
+              "charge",
+              "heavy",
+              "charge",
+              "heavy",
+              "heal",
+              "heal"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
