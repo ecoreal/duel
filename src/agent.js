@@ -13,16 +13,22 @@ const ghostCache = new Map();
 export function agentName(cmd) {
   if (cmd.startsWith('builtin:')) return cmd.slice(8);
   if (cmd.startsWith('ghost:')) {
-    const [, file, side] = cmd.split(':');
-    const base = file.split('/').pop().replace(/\.[a-z]+$/i, '');
-    return `${base}-ghost${side ?? ''}`;
+    const { file, side } = parseGhost(cmd);
+    const base = file.split(/[/\\]/).pop().replace(/\.[a-z]+$/i, '');
+    return `${base}-ghost${side}`;
   }
-  return cmd.split('/').pop().replace(/\.[a-z]+$/i, '');
+  return cmd.split(/[/\\]/).pop().replace(/\.[a-z]+$/i, '');
+}
+
+// ghost:<file>:<0|1> — the file part may itself contain colons (C:\… on Windows)
+function parseGhost(cmd) {
+  const rest = cmd.slice(6);
+  const m = rest.match(/^(.*):([01])$/);
+  return m ? { file: m[1], side: Number(m[2]) } : { file: rest, side: 0 };
 }
 
 function ghostMove(cmd, view) {
-  const [, file, sideRaw] = cmd.split(':');
-  const side = sideRaw === '1' ? 1 : 0;
+  const { file, side } = parseGhost(cmd);
   if (!ghostCache.has(file)) {
     try { ghostCache.set(file, loadReplay(file)); } catch { ghostCache.set(file, null); }
   }
