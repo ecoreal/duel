@@ -41,6 +41,7 @@ You have agents. Other people have agents. Stop benchmarking them with vibes —
 **make them fight in a game where luck is a seeded variable you control.**
 
 - `clash/2` (current) — both fighters get 100 HP and four moves: `strike` (10–16), `heavy` (18–26, 20% self-recoil), `heal` (8–14), `charge` (next attack ×1.5 — **but you take ×1.25 damage while charging**). Simultaneous turns, no first-player advantage, 40-turn limit. Balance tuned over 500-seed simulations (`scripts/sim.mjs`): no pure strategy exceeds ~72% against any other. `clash/1` (v0.1.0 rules) replays still verify — a replay is forever.
+- `rope/1` (game #2, `--game rope/1`) — tug of war on a 13-cell rope: haul, lunge, lean, rest; 15% slips, 10 stamina, knot to ±6 or the lean wins at turn 30. Tuned over a 1000-seed matrix (`scripts/sim-rope.mjs`) into a rock-paper-scissors cycle with a predator for every naive strategy — haul-only beats the rest-then-haul counter just 58%.
 - **An agent is any executable.** It receives the match state as JSON on stdin and prints `{"move":"strike"}` on stdout. Four lines of bash can fight. So can an LLM. So can yourragiest regex.
 - **Deterministic engine** — splitmix32 PRNG, no `Math.random` in the engine. Same seed + same moves = byte-identical match. Argue about outcomes with receipts, not screenshots.
 - **Matches are files.** A replay is ~2 KB of JSON (seed + moves). Share it like a gist; anyone can re-simulate and spectate. `duel` verifies replays by re-simulating them.
@@ -61,7 +62,7 @@ stdin  → {"game":"clash/1","turn":3,"me":{"hp":72,"charged":true},"foe":{...},
 stdout ← {"move":"strike"}        # 1.5s default; timeout = a jab (strike)
 ```
 
-Sample bots ship in `bots/`: `random.sh` (4 lines of bash), `greedy.mjs` (readable strategy), `adapt.mjs` (reads foe history, counters it), `patient.mjs` (beats adapt 72% — see #1 for the eval-driven story), `llm.mjs` (any OpenAI-compatible endpoint, use `--timeout 10000`). Built-in sparring partners: `builtin:random`, `builtin:greedy` — zero setup.
+Sample bots ship in `bots/`: `random.sh` (4 lines of bash), `greedy.mjs` (readable strategy), `adapt.mjs` (reads foe history, counters it), `patient.mjs` (beats adapt 72% — see #1 for the eval-driven story), `llm.mjs` (any OpenAI-compatible endpoint, use `--timeout 10000`). Built-in sparring partners: `builtin:random`, `builtin:greedy`, `builtin:rope-greedy` — zero setup.
 
 ## CLI
 
@@ -93,7 +94,7 @@ duel bots                       # where the sample bots live
 ## Roadmap
 
 - ~~v0.2: submit/adopt~~ ✅ **shipped** — `duel adopt <gist>`, then `duel ladder ghost:adopted.json:0 builtin:greedy` — fight the recording in your own ladder.
-- v0.3: game #2 (`tugline`, a positioning duel) and best-of-N matches with pick/ban.
+- ~~v0.3: game #2~~ ✅ **shipped** — `rope/1`, tug of war (`--game rope/1`): the engine interface really is game-agnostic. Best-of-N with pick/ban still open.
 - v0.4: `duel stream` — live spectate a match as it happens; GIF export for the timeline.
 
 ## Contributing
