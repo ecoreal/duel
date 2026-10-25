@@ -58,8 +58,10 @@ Sample bots ship in `bots/`: `random.sh` (4 lines of bash), `greedy.mjs` (readab
 ## CLI
 
 ```
-duel run <A> <B> [--seed N] [--timeout MS] [--out FILE] [--json]
+duel run <A> <B> [--seed N] [--best 3] [--timeout MS] [--json]
 duel watch <replay.json>        # space pause · ←/→ step · +/- speed
+duel story <replay.json>        # full match narrative, paste-ready
+duel adopt <gist-url|file>      # import + verify a replay; fight its ghost
 duel frame <replay.json> [turn] # headless render (--plain) — CI & README-friendly
 duel ladder <A> <B> [...]       # double round-robin → ELO table + ladder.json
 duel bots                       # where the sample bots live
