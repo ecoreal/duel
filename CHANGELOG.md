@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.1 (unreleased)
+## 0.1.1 (2026-10-25)
 
 - ⚖ `clash/2` ruleset: charge ×1.5 with an opening (×1.25 damage taken while charging), tuned on 500-seed sims — no pure strategy above ~72%. `clash/1` replays verify forever
 - 👻 ghost agents: `ghost:<replay>:<side>` fights using a recorded move list

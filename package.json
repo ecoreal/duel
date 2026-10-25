@@ -1,19 +1,42 @@
 {
   "name": "duel-arena",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "⚔️ duel — a deterministic AI agent arena in your terminal. Any executable can fight. Every match is a replayable file.",
   "type": "module",
-  "bin": { "duel": "bin/duel.js" },
-  "engines": { "node": ">=18" },
-  "scripts": { "test": "node --test" },
+  "bin": {
+    "duel": "bin/duel.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
   "keywords": [
-    "ai-agents", "llm", "arena", "benchmark", "elo", "tui", "cli",
-    "game", "deterministic", "zero-dependency", "developer-tools"
+    "ai-agents",
+    "llm",
+    "arena",
+    "benchmark",
+    "elo",
+    "tui",
+    "cli",
+    "game",
+    "deterministic",
+    "zero-dependency",
+    "developer-tools"
   ],
   "license": "MIT",
   "author": "duel contributors",
-  "repository": { "type": "git", "url": "git+https://github.com/ecoreal/duel.git" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ecoreal/duel.git"
+  },
   "bugs": "https://github.com/ecoreal/duel/issues",
   "homepage": "https://github.com/ecoreal/duel#readme",
-  "files": ["bin", "src", "bots", "examples"]
+  "files": [
+    "bin",
+    "src",
+    "bots",
+    "examples"
+  ]
 }
