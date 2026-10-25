@@ -1,4 +1,4 @@
-import { play, agentView, MAX_TURNS, DEFAULT_GAME } from './engine.js';
+import { play, agentView, maxTurnsFor, DEFAULT_GAME, GAMES } from './engine.js';
 import { askAgent, agentName } from './agent.js';
 import { saveReplay, loadReplay, verifyReplay } from './replay.js';
 import { runLadder } from './elo.js';
@@ -10,7 +10,7 @@ const VERSION = '0.1.0';
 const HELP = `⚔ duel ${VERSION} — a deterministic AI agent arena in your terminal
 
 usage:
-  duel run <agentA> <agentB> [--seed N] [--game clash/1|clash/2] [--timeout MS] [--json]
+  duel run <agentA> <agentB> [--seed N] [--game clash/2|rope/1] [--timeout MS] [--json]
   duel watch <replay.json>            spectate with playback controls
   duel frame <replay.json> [turn]     render one frame to stdout (--plain)
   duel eval <A> <B> [--games 50]      statistical matchup report (sides swapped)
@@ -23,8 +23,8 @@ usage:
   duel bots                           where the sample bots live
 
 an agent is any executable: it reads the match state as JSON on stdin
-and prints {"move":"strike|heavy|heal|charge"} on stdout.
-built-in opponents: builtin:random  builtin:greedy`;
+and prints {"move":"<one of view.moves>"} on stdout.
+built-in opponents: builtin:random  builtin:greedy  builtin:rope-greedy`;
 
 function parseFlags(argv) {
   const flags = { _: [] };
@@ -50,10 +50,12 @@ function parseFlags(argv) {
 }
 
 // Drives the engine turn by turn, asking each agent for its move.
-async function runMatch(cmdA, cmdB, { seed, timeout, game = DEFAULT_GAME }) {
+// Exported for tests: the real end-to-end path (per-game turn limit included).
+export async function runMatch(cmdA, cmdB, { seed, timeout, game = DEFAULT_GAME }) {
   const movesA = [], movesB = [];
   const fails = { a: 0, b: 0 };
-  for (let t = 0; t < MAX_TURNS; t++) {
+  const maxT = maxTurnsFor(game);
+  for (let t = 0; t < maxT; t++) {
     let sim = play(seed, movesA, movesB, game);
     if (sim.result.stop !== 'moves') break; // already decided
     const [ra, rb] = await Promise.all([
@@ -66,6 +68,11 @@ async function runMatch(cmdA, cmdB, { seed, timeout, game = DEFAULT_GAME }) {
   }
   return { seed, movesA, movesB, fails, game };
 }
+
+// per-game score line: clash shows HP, rope shows where the knot leans
+const scoreOf = (game, result) => GAMES[game]?.rope
+  ? `knot ${result.knot > 0 ? '+' : ''}${result.knot}`
+  : `hp ${result.hp[0]}:${result.hp[1]}`;
 
 export async function main(argv) {
   const [cmd, ...rest] = argv;
@@ -122,7 +129,7 @@ try: duel run bots/greedy.mjs builtin:random --seed 7`);
         if (winnerCorner === 'a') ca++; else if (winnerCorner === 'b') cb++; else cd++;
         saveReplay(`${prefix}-g${g + 1}.json`, { seed: s, players: [{ name: agentName(A) }, { name: agentName(B) }], movesA, movesB, game });
         const wn = winnerCorner === 'a' ? nameA : winnerCorner === 'b' ? nameB : 'draw';
-        console.log(dim(`  game ${g + 1}: ${wn} (${r.hp[0]}:${r.hp[1]}) → ${prefix}-g${g + 1}.json`));
+        console.log(dim(`  game ${g + 1}: ${wn} (${scoreOf(game, r)}) → ${prefix}-g${g + 1}.json`));
       }
       console.log(`⚔ best-of-${best}: ${nameA} ${ca} — ${cb} ${nameB}${cd ? ` (${cd} draw)` : ''}`);
       console.log(`   ${ca === cb ? 'series drawn' : ca > cb ? `${nameA} takes the series` : `${nameB} takes the series`}`);
@@ -137,7 +144,7 @@ try: duel run bots/greedy.mjs builtin:random --seed 7`);
     const { result } = replay;
     const verdict = result.winner === 'draw' ? 'draw' : `${(result.winner === 'a' ? players[0] : players[1]).name} wins`;
     console.log(`⚔ ${players[0].name} vs ${players[1].name} · seed ${seed} · ${result.turns} turns`);
-    console.log(`   ${verdict} — hp ${result.hp[0]}:${result.hp[1]}${result.stop === 'maxturns' ? ' (turn limit)' : ''}`);
+    console.log(`   ${verdict} — ${scoreOf(game, result)}${result.stop === 'maxturns' ? ' (turn limit)' : ''}`);
     const hesitations = Object.entries(fails).filter(([, n]) => n > 0).map(([side, n]) => `${(side === 'a' ? players[0] : players[1]).name}: ${n} jab${n === 1 ? '' : 's'} (invalid/late move)`);
     if (hesitations.length) console.log(`   ⚠ ${hesitations.join(' · ')}`);
     console.log(`💾 replay → ${out}   spectate: duel watch ${out}`);
@@ -195,14 +202,12 @@ try: duel run bots/greedy.mjs builtin:random --seed 7`);
   }
 
   if (cmd === 'rules') {
-    const { GAMES, MOVES } = await import('./engine.js');
+    const { GAMES } = await import('./engine.js');
     const which = flags._[0];
     for (const [id, r] of Object.entries(GAMES)) {
       if (which && which !== id) continue;
-      console.log(`${id}  charge ×${r.chargeMult}${r.chargeOpening ? ` · opening ×${r.chargeOpening} (damage taken while charging)` : ''}`);
+      console.log(`${id} — ${r.blurb.join('\n        ')}`);
     }
-    console.log(`moves: strike 10-16 · heavy 18-26 (20% recoil 5) · heal 8-14 (cap 100) · charge → ×mult next attack`);
-    console.log(`100 HP · simultaneous turns · 40-turn limit · HP compare decides at the limit`);
     return;
   }
 
@@ -271,9 +276,9 @@ try: duel run bots/greedy.mjs builtin:random --seed 7`);
     const stops = [];
     for (let t = every; t <= total; t += every) stops.push(t);
     if (stops[stops.length - 1] !== total) stops.push(total);
-    // highlight turns: biggest single hit + the final turn
+    // highlight turns: biggest single hit + the final turn (rope logs have no dmg)
     let biggest = { turn: 1, dmg: 0 };
-    for (const t of replay.log) for (const d of t.dmg) if (d > biggest.dmg) biggest = { turn: t.turn, dmg: d };
+    for (const t of replay.log) for (const d of (t.dmg ?? [])) if (d > biggest.dmg) biggest = { turn: t.turn, dmg: d };
     console.log(dim(`⚔ duel film · ${file} · ${stops.length} frames (every ${every} turns)`));
     for (const turn of stops) {
       const tag = turn === biggest.turn ? `  ← biggest hit (${biggest.dmg})` : turn === total ? '  ← final' : '';
@@ -314,11 +319,12 @@ try: duel run bots/greedy.mjs builtin:random --seed 7`);
     }
     const seedBase = flags.seed ?? 1000;
     const timeout = flags.timeout ?? 1500;
+    const game = flags.game || DEFAULT_GAME;
     let matchCount = 0;
     const { table, matches } = await runLadder(agents, async (A, B) => {
       const seed = seedBase + matchCount++;
-      const { movesA, movesB } = await runMatch(A.cmd, B.cmd, { seed, timeout });
-      const { result } = play(seed, movesA, movesB);
+      const { movesA, movesB } = await runMatch(A.cmd, B.cmd, { seed, timeout, game });
+      const { result } = play(seed, movesA, movesB, game);
       return { winner: result.winner, turns: result.turns, seed };
     });
     writeFileSync('ladder.json', JSON.stringify({ updated: new Date().toISOString(), table, matches }, null, 2));
