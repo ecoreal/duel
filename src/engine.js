@@ -1,17 +1,25 @@
-// clash/1 — the deterministic duel engine.
-// Same seed + same move lists => byte-identical log. Math.random is banned here.
+// The deterministic duel engine.
+// Same seed + same move lists + same ruleset => byte-identical log.
 export const MAX_HP = 100;
 export const MAX_TURNS = 40;
-export const CHARGE_MULT = 1.8;
+
+// clash/1 — v0.1.0 ruleset (charge ×1.8; kept so old replays verify forever)
+// clash/2 — balanced ruleset tuned over 500-seed experiments (scripts/sim.mjs):
+//   ×1.8 let a pure charge/heavy loop win 92% vs everything, so charging now
+//   multiplies ×1.5 BUT leaves you open: damage taken while charging ×1.25.
+export const GAMES = {
+  'clash/1': { chargeMult: 1.8 },
+  'clash/2': { chargeMult: 1.5, chargeOpening: 1.25 },
+};
+export const DEFAULT_GAME = 'clash/2';
+export const CHARGE_MULT = GAMES[DEFAULT_GAME].chargeMult;
 
 export const MOVES = {
   strike: { min: 10, max: 16 },                       // reliable damage
   heavy: { min: 18, max: 26, recoilChance: 0.2, recoil: 5 }, // high risk
   heal: { min: 8, max: 14 },                          // back to full? no — cap at MAX_HP
-  charge: {},                                         // next strike/heavy ×1.8
+  charge: {},                                         // next strike/heavy ×chargeMult
 };
-
-// splitmix32 — tiny, good enough, seedable
 export function makeRng(seed) {
   let a = seed >>> 0;
   return function () {
@@ -26,18 +34,20 @@ export const validMove = m => (typeof m === 'string' && MOVES[m] ? m : 'strike')
 const roll = (rng, lo, hi) => lo + Math.floor(rng() * (hi - lo + 1));
 
 // Compute one side's effect against the pre-turn snapshot (simultaneous turns).
-function act(att, def, move, rng) {
+function act(att, def, move, rng, mult) {
   const m = MOVES[move];
   if (move === 'heal') return { heal: roll(rng, m.min, m.max) };
   if (move === 'charge') return { charge: true };
   let dmg = roll(rng, m.min, m.max);
-  if (att.charged) dmg = Math.floor(dmg * CHARGE_MULT);
+  if (att.charged) dmg = Math.floor(dmg * mult);
   const out = { dmg };
   if (move === 'heavy' && rng() < m.recoilChance) out.recoil = m.recoil;
   return out;
 }
 
-export function play(seed, movesA, movesB) {
+export function play(seed, movesA, movesB, gameId = DEFAULT_GAME) {
+  const rules = GAMES[gameId] || GAMES[DEFAULT_GAME];
+  const mult = rules.chargeMult;
   const rng = makeRng(seed);
   const hp = [MAX_HP, MAX_HP];
   const charged = [false, false];
@@ -50,12 +60,14 @@ export function play(seed, movesA, movesB) {
     const ma = validMove(movesA[t]);
     const mb = validMove(movesB[t]);
     // effects computed from the snapshot: no first-player advantage
-    const fxA = act({ charged: charged[0] }, null, ma, rng);
-    const fxB = act({ charged: charged[1] }, null, mb, rng);
+    const fxA = act({ charged: charged[0] }, null, ma, rng, mult);
+    const fxB = act({ charged: charged[1] }, null, mb, rng, mult);
 
-    // apply heals, then damage & recoil, then charge state
+    // heals apply first, then damage & recoil — and charging leaves you open
     if (fxA.heal) hp[0] = Math.min(MAX_HP, hp[0] + fxA.heal);
     if (fxB.heal) hp[1] = Math.min(MAX_HP, hp[1] + fxB.heal);
+    if (fxA.dmg && mb === 'charge' && rules.chargeOpening) fxA.dmg = Math.floor(fxA.dmg * rules.chargeOpening);
+    if (fxB.dmg && ma === 'charge' && rules.chargeOpening) fxB.dmg = Math.floor(fxB.dmg * rules.chargeOpening);
     if (fxA.dmg) hp[1] -= fxA.dmg;
     if (fxB.dmg) hp[0] -= fxB.dmg;
     if (fxA.recoil) hp[0] -= fxA.recoil;
@@ -85,19 +97,24 @@ export function play(seed, movesA, movesB) {
 }
 
 // State an agent sees on its turn. `you` is 0 or 1.
-export function agentView(matchLog, you, turn) {
+export function agentView(matchLog, you, turn, gameId = DEFAULT_GAME) {
+  const rules = GAMES[gameId] || GAMES[DEFAULT_GAME];
+  const mult = rules.chargeMult;
   const last = matchLog[matchLog.length - 1];
   const me = last ? { hp: last.hp[you], charged: last.charged[you] } : { hp: MAX_HP, charged: false };
   const foe = last ? { hp: last.hp[1 - you], charged: last.charged[1 - you] } : { hp: MAX_HP, charged: false };
+  const chargeRule = rules.chargeOpening
+    ? `next attack ×${mult}, but you take ×${rules.chargeOpening} damage while charging`
+    : `next attack ×${mult}`;
   return {
-    game: 'clash/1',
+    game: gameId,
     turn,
     maxTurns: MAX_TURNS,
     you,
     me,
     foe,
     moves: Object.keys(MOVES),
-    rules: { strike: '10-16 dmg', heavy: '18-26 dmg, 20% self-recoil 5', heal: '8-14 hp (cap 100)', charge: `next attack ×${CHARGE_MULT}` },
+    rules: { strike: '10-16 dmg', heavy: '18-26 dmg, 20% self-recoil 5', heal: '8-14 hp (cap 100)', charge: chargeRule },
     history: matchLog.map(l => ({ turn: l.turn, moves: l.moves, hp: l.hp })),
   };
 }

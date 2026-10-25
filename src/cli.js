@@ -1,4 +1,4 @@
-import { play, agentView, MAX_TURNS } from './engine.js';
+import { play, agentView, MAX_TURNS, DEFAULT_GAME } from './engine.js';
 import { askAgent, agentName } from './agent.js';
 import { saveReplay, loadReplay, verifyReplay } from './replay.js';
 import { runLadder } from './elo.js';
@@ -25,6 +25,7 @@ function parseFlags(argv) {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--seed') flags.seed = Number(argv[++i]);
+    else if (a === '--game') flags.game = argv[++i];
     else if (a === '--out') flags.out = argv[++i];
     else if (a === '--timeout') flags.timeout = Number(argv[++i]);
     else if (a === '--json') flags.json = true;
@@ -38,21 +39,21 @@ function parseFlags(argv) {
 }
 
 // Drives the engine turn by turn, asking each agent for its move.
-async function runMatch(cmdA, cmdB, { seed, timeout }) {
+async function runMatch(cmdA, cmdB, { seed, timeout, game = DEFAULT_GAME }) {
   const movesA = [], movesB = [];
   const fails = { a: 0, b: 0 };
   for (let t = 0; t < MAX_TURNS; t++) {
-    let sim = play(seed, movesA, movesB);
+    let sim = play(seed, movesA, movesB, game);
     if (sim.result.stop !== 'moves') break; // already decided
     const [ra, rb] = await Promise.all([
-      askAgent(cmdA, agentView(sim.log, 0, t + 1), timeout),
-      askAgent(cmdB, agentView(sim.log, 1, t + 1), timeout),
+      askAgent(cmdA, agentView(sim.log, 0, t + 1, game), timeout),
+      askAgent(cmdB, agentView(sim.log, 1, t + 1, game), timeout),
     ]);
     if (!ra.ok) fails.a++;
     if (!rb.ok) fails.b++;
     movesA.push(ra.move); movesB.push(rb.move);
   }
-  return { seed, movesA, movesB, fails };
+  return { seed, movesA, movesB, fails, game };
 }
 
 export async function main(argv) {
@@ -74,10 +75,11 @@ try: duel run bots/greedy.mjs builtin:random --seed 7`);
     if (!a || !b) { console.error('duel run: need two agents\n' + HELP); process.exitCode = 1; return; }
     const seed = flags.seed ?? (Date.now() & 0x7fffffff);
     const timeout = flags.timeout ?? 1500;
-    const { movesA, movesB, fails } = await runMatch(a, b, { seed, timeout });
+    const game = flags.game || DEFAULT_GAME;
+    const { movesA, movesB, fails } = await runMatch(a, b, { seed, timeout, game });
     const players = [{ name: agentName(a) }, { name: agentName(b) }];
     const out = flags.out || `duel-${seed}.json`;
-    const replay = saveReplay(out, { seed, players, movesA, movesB });
+    const replay = saveReplay(out, { seed, players, movesA, movesB, game });
     if (!verifyReplay(replay)) console.error('warning: replay failed integrity check');
     if (flags.json) { console.log(JSON.stringify({ ...replay, log: undefined })); return; }
     const { result } = replay;

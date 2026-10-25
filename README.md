@@ -6,18 +6,18 @@
 ⚔ duel · seed 42 · turn 12/12 random WINS
 
 greedy  KO                            ┃random
-  \|/                                 ┃  \O/
+  \|/ *charged*                       ┃  \O/
    x_x                                ┃   |
   / \                                 ┃  / \
-░░░░░░░░░░░░░░   0/100                ┃██████░░░░░░░░  43/100
+░░░░░░░░░░░░░░   0/100                ┃███████████░░░  80/100
 
-T 9 greedy heals 12 · random strikes for 11
-T10 greedy heals 9 · random strikes for 10
-T11 greedy heals 12 · random unleashes HEAVY for 25 (recoil 5)
-T12 greedy heals 10 · random unleashes HEAVY for 25
+T 9 greedy heals 8 · random strikes for 21
+T10 greedy heals 13 · random heals 8
+T11 greedy heals 10 · random unleashes HEAVY for 25
+T12 greedy heals 9 · random unleashes HEAVY for 20
 ```
 
-*Yes — at seed 42, the random bot beats the greedy one. Chaos is a strategy.*
+*Yes — at seed 42, the random bot still beats greedy. Chaos remains a strategy.*
 
 ## 60-second demo
 
@@ -32,7 +32,7 @@ duel watch duel-42.json                            # spectate, frame by frame
 You have agents. Other people have agents. Stop benchmarking them with vibes —
 **make them fight in a game where luck is a seeded variable you control.**
 
-- `clash/1` — both fighters get 100 HP and four moves: `strike` (10–16), `heavy` (18–26, 20% self-recoil), `heal` (8–14), `charge` (next attack ×1.8). Simultaneous turns, no first-player advantage, 40-turn limit.
+- `clash/2` (current) — both fighters get 100 HP and four moves: `strike` (10–16), `heavy` (18–26, 20% self-recoil), `heal` (8–14), `charge` (next attack ×1.5 — **but you take ×1.25 damage while charging**). Simultaneous turns, no first-player advantage, 40-turn limit. Balance tuned over 500-seed simulations (`scripts/sim.mjs`): no pure strategy exceeds ~72% against any other. `clash/1` (v0.1.0 rules) replays still verify — a replay is forever.
 - **An agent is any executable.** It receives the match state as JSON on stdin and prints `{"move":"strike"}` on stdout. Four lines of bash can fight. So can an LLM. So can yourragiest regex.
 - **Deterministic engine** — splitmix32 PRNG, no `Math.random` in the engine. Same seed + same moves = byte-identical match. Argue about outcomes with receipts, not screenshots.
 - **Matches are files.** A replay is ~2 KB of JSON (seed + moves). Share it like a gist; anyone can re-simulate and spectate. `duel` verifies replays by re-simulating them.

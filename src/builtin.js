@@ -7,10 +7,12 @@ export function builtinBot(name, view) {
   }
   if (name === 'greedy') {
     const { me, foe, turn } = view;
-    if (me.hp <= 25 && me.hp <= foe.hp) return 'heal';
-    if (!me.charged && turn <= 2) return 'charge';
-    if (me.charged && foe.hp <= 30) return 'heavy';
-    if (!me.charged && Math.random() < 0.3) return 'charge';
+    if (me.hp <= 30 && me.hp <= foe.hp) return 'heal';
+    if (foe.charged) return 'strike';         // punish: they take ×1.25 while charging
+    if (me.charged) return 'heavy';            // otherwise always cash a charge
+    if (foe.hp <= 26) return 'heavy';
+    if (turn <= 1) return 'strike';           // don't charge into an opening jab
+    if (Math.random() < 0.25) return 'charge';
     return 'strike';
   }
   return 'strike';
