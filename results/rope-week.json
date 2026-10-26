@@ -1,0 +1,36 @@
+{
+  "week": 202644,
+  "updated": "2026-10-26T08:34:58.242Z",
+  "table": [
+    {
+      "name": "rope-greedy",
+      "rating": 1201.5,
+      "w": 1,
+      "l": 1,
+      "d": 0
+    },
+    {
+      "name": "tugger",
+      "rating": 1198.5,
+      "w": 1,
+      "l": 1,
+      "d": 0
+    }
+  ],
+  "matches": [
+    {
+      "a": "rope-greedy",
+      "b": "tugger",
+      "winner": "b",
+      "turns": 30,
+      "seed": null
+    },
+    {
+      "a": "tugger",
+      "b": "rope-greedy",
+      "winner": "b",
+      "turns": 23,
+      "seed": null
+    }
+  ]
+}
