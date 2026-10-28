@@ -16,6 +16,9 @@ usage:
   duel eval <A> <B> [--games 50]      statistical matchup report (sides swapped)
   duel season <agent...>              weekly ladder — same seeds for everyone
   duel tournament <agent...>          single-elimination bracket (--seed, --best)
+  duel stream <replay>                stream a recording live (--delay ms)
+  duel stream <agentA> <agentB>       spectate a live match as the agents play
+  duel gif <replay> [--out f.gif]     the whole match as an animated GIF
   duel film <replay> [--every 3]      arena storyboard frames (paste-ready)
   duel rules [game]                   print the rulesets
   duel ladder <agent...>              round-robin, ELO table -> ladder.json
@@ -36,6 +39,11 @@ function parseFlags(argv) {
     else if (a === '--games') flags.games = Number(argv[++i]);
     else if (a === '--week') flags.week = Number(argv[++i]);
     else if (a === '--every') flags.every = Number(argv[++i]);
+    else if (a === '--delay') flags.delay = Number(argv[++i]);
+    else if (a === '--frames') flags.frames = Number(argv[++i]);
+    else if (a === '--cols') flags.cols = Number(argv[++i]);
+    else if (a === '--rows') flags.rows = Number(argv[++i]);
+    else if (a === '--scale') flags.scale = Number(argv[++i]);
     else if (a === '--height') flags.height = Number(argv[++i]);
     else if (a === '--out') flags.out = argv[++i];
     else if (a === '--timeout') flags.timeout = Number(argv[++i]);
@@ -264,6 +272,64 @@ try: duel run bots/greedy.mjs builtin:random --seed 7`);
     console.log(`⚔ eval · ${nameA} vs ${nameB} · ${games} games (sides swapped, seeds ${seedBase}+) · ${game}`);
     console.log(`   ${nameA.padEnd(20)} ${pct(wa)}   ${nameB.padEnd(20)} ${pct(wb)}${dr ? `   draws ${pct(dr)}` : ''}`);
     console.log(dim(`   avg ${turns / games} turns/game · ${jabs} invalid/late moves`));
+    return;
+  }
+
+  if (cmd === 'gif') {
+    const [file] = flags._;
+    if (!file) { console.error('duel gif: need a replay file — duel gif match.json [--out match.gif]'); process.exitCode = 1; return; }
+    let replay;
+    try { replay = loadReplay(file); }
+    catch { console.error(`duel gif: cannot read ${file}`); process.exitCode = 1; return; }
+    const { buildReplayFilm, writeFilm } = await import('./film.js');
+    const film = buildReplayFilm({
+      replay,
+      cols: flags.cols || 80,
+      rows: flags.rows || 24,
+      frames: flags.frames || 40,
+      delayCs: flags.delay || 18,
+      scale: flags.scale || 1,
+    });
+    const dest = flags.out || file.replace(/\.[^./\\]*$/, '') + '.gif';
+    const r = writeFilm(dest, film);
+    console.log(`🎞 ${r.frames} frames · ${r.width}x${r.height} · ${(r.bytes / 1024).toFixed(1)} KB → ${r.path}`);
+    return;
+  }
+
+  if (cmd === 'stream') {
+    const { streamMatch, streamReplay } = await import('./stream.js');
+    const busy = flags._;
+    if (!busy.length) { console.error('duel stream: need a replay file or two agents'); process.exitCode = 1; return; }
+    const delay = flags.delay ?? 250;
+    const cols = flags.cols || 80;
+    const rows = flags.rows || 24;
+    // one argument that parses as a replay = playback; anything else = live match
+    if (busy.length === 1) {
+      let replay = null;
+      try { replay = loadReplay(busy[0]); } catch { replay = null; }
+      if (!replay || !replay.log) {
+        console.error(`duel stream: ${busy[0]} is not a replay (need run|replay json, or two agents)`);
+        process.exitCode = 1;
+        return;
+      }
+      await streamReplay({ replay, delay, cols, rows });
+      return;
+    }
+    const [a, b] = busy;
+    const seed = flags.seed ?? (Date.now() & 0x7fffffff);
+    const timeout = flags.timeout ?? 1500;
+    const game = flags.game || DEFAULT_GAME;
+    const players = [{ name: agentName(a) }, { name: agentName(b) }];
+    const out = flags.out || `duel-${seed}-live.json`;
+    const { replay, fails } = await streamMatch({
+      cmdA: a, cmdB: b, seed, timeout, game, players,
+      delay, every: flags.every ?? 0, cols, rows,
+    });
+    if (!verifyReplay(replay)) console.error('warning: replay failed integrity check');
+    saveReplay(out, { seed, players, movesA: replay.moves.map(m => m[0]), movesB: replay.moves.map(m => m[1]), game });
+    const bad = Object.entries(fails).filter(([, n]) => n > 0);
+    if (bad.length) console.error(`⚠ ${bad.map(([side, n]) => `${players[side === 'a' ? 0 : 1].name}: ${n} jab${n === 1 ? '' : 's'}`).join(' · ')}`);
+    console.log(`💾 replay → ${out}   re-live it: duel stream ${out}`);
     return;
   }
 

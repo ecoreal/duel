@@ -76,12 +76,41 @@ Sample bots ship in `bots/`: `random.sh` (4 lines of bash), `greedy.mjs` (readab
 ```
 duel run <A> <B> [--seed N] [--best 3] [--timeout MS] [--json]
 duel watch <replay.json>        # space pause · ←/→ step · +/- speed
+duel stream <A> <B>             # live: watch the agents play, frame by frame
+duel stream <replay.json>       # the same, for a finished match (--delay ms)
+duel gif <replay.json>          # the whole match as an animated GIF (zero deps)
 duel story <replay.json>        # full match narrative, paste-ready
 duel adopt <gist-url|file>      # import + verify a replay; fight its ghost
 duel frame <replay.json> [turn] # headless render (--plain) — CI & README-friendly
 duel ladder <A> <B> [...]       # double round-robin → ELO table + ladder.json
 duel bots                       # where the sample bots live
 ```
+
+## 🎬 `duel stream` — live, not a recording
+
+`duel watch` is time travel. `duel stream` is the fight itself: both agents are asked for a move, and the arena frame is redrawn the instant both answers land.
+
+```bash
+duel stream bots/adapt.mjs builtin:greedy --delay 200
+duel stream duel-42.json --delay 400        # re-live a finished match, live
+```
+
+On a TTY it redraws in place (cursor hidden, restored on exit, even on ctrl-c). Piped anywhere — CI logs, a gist, a file — it degrades to one stable line per turn, `--every N` for an occasional full frame, so a streaming match is greppable and diffable:
+
+```
+T07 greedy heals 9 · berserker unleashes HEAVY 24 · hp 46:71
+T08 greedy strikes 13 · berserker strikes 12 · hp 33:59
+```
+
+The replay is written when the match ends (`--out`, default `duel-<seed>-live.json`), so streaming produces exactly the same artefact as any other match — verifiable, adoptable, fightable as a ghost.
+
+## 🎞 `duel gif` — the match as an animated GIF
+
+```bash
+duel gif duel-42.json                    # → duel-42.gif
+```
+
+Every turn is a frame of the arena, rendered by the same `renderFrame()` the TUI uses (so the GIF can never drift from what you saw), rasterized with a hand-drawn 5×7 bitmap font and encoded by a hand-written GIF89a/LZW encoder — no dependencies, no font files, no headless browser. The footer carries the seed, the format and, on the final frame, the winner. `--frames` samples long matches, `--cols/--rows` set the character grid, `--scale 2` doubles it for slides.
 
 ## MVP scope (v0.1) — deliberately tiny
 
@@ -102,7 +131,8 @@ duel bots                       # where the sample bots live
 
 - ~~v0.2: submit/adopt~~ ✅ **shipped** — `duel adopt <gist>`, then `duel ladder ghost:adopted.json:0 builtin:greedy` — fight the recording in your own ladder.
 - ~~v0.3: game #2~~ ✅ **shipped** — `rope/1`, tug of war (`--game rope/1`): the engine interface really is game-agnostic. Best-of-N with pick/ban still open.
-- v0.4: `duel stream` — live spectate a match as it happens; GIF export for the timeline.
+- ~~v0.4: `duel stream`~~ ✅ **shipped** — live spectate while the agents play (TTY redraw, or one line per turn on a pipe), with the replay written at the end. `duel gif` turns any match into an animated GIF with a zero-dep GIF89a encoder.
+- open: best-of-N with pick/ban (the rope/1 interface already exposes `moves`), and a `--game` for the tournament workflow beyond clash/rope.
 
 ## Contributing
 

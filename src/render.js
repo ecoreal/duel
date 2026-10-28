@@ -56,7 +56,7 @@ function renderRopeStory(replay) {
   return out.join('\n');
 }
 
-function renderRopeFrame({ replay, turn, w = 80, h = 24 }) {
+function renderRopeFrame({ replay, turn, w = 80, h = 24, hint = true }) {
   const { players, result } = replay;
   const log = replay.log.slice(0, turn);
   const last = log[log.length - 1];
@@ -96,7 +96,7 @@ function renderRopeFrame({ replay, turn, w = 80, h = 24 }) {
     lines.push(dim(`T${String(t.turn).padStart(2)} `) + cut(`${ropeTurnText(t, players)}  knot ${fmtKnot(t.knot)}`, w - 4));
   }
   while (lines.length < h - 1) lines.push('');
-  lines.push(pad(dim(cut('space pause · ←/→ step · +/- speed · q quit', w)), w));
+  if (hint) lines.push(pad(dim(cut('space pause · ←/→ step · +/- speed · q quit', w)), w));
   return lines.slice(0, h);
 }
 
@@ -124,8 +124,8 @@ export function renderStory(replay) {
   return out.join('\n');
 }
 
-export function renderFrame({ replay, turn, w = 80, h = 24 }) {
-  if (isRope(replay)) return renderRopeFrame({ replay, turn, w, h });
+export function renderFrame({ replay, turn, w = 80, h = 24, hint = true }) {
+  if (isRope(replay)) return renderRopeFrame({ replay, turn, w, h, hint });
   const { players, result } = replay;
   const log = replay.log.slice(0, turn);
   const last = log[log.length - 1];
@@ -163,6 +163,6 @@ export function renderFrame({ replay, turn, w = 80, h = 24 }) {
     lines.push(dim(`T${String(t.turn).padStart(2)} `) + cut(parts.join(' · '), w - 4));
   }
   while (lines.length < h - 1) lines.push('');
-  lines.push(pad(dim(cut('space pause · ←/→ step · +/- speed · q quit', w)), w));
+  if (hint) lines.push(pad(dim(cut('space pause · ←/→ step · +/- speed · q quit', w)), w));
   return lines.slice(0, h);
 }
