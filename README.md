@@ -110,7 +110,7 @@ The replay is written when the match ends (`--out`, default `duel-<seed>-live.js
 duel gif duel-42.json                    # → duel-42.gif
 ```
 
-Every turn is a frame of the arena, rendered by the same `renderFrame()` the TUI uses (so the GIF can never drift from what you saw), rasterized with a hand-drawn 5×7 bitmap font and encoded by a hand-written GIF89a/LZW encoder — no dependencies, no font files, no headless browser. The footer carries the seed, the format and, on the final frame, the winner. `--frames` samples long matches, `--cols/--rows` set the character grid, `--scale 2` doubles it for slides.
+Every turn is a frame of the arena, rendered by the same `renderFrame()` the TUI uses (so the GIF can never drift from what you saw), rasterized with a hand-drawn 5×7 bitmap font and encoded by a hand-written GIF89a/LZW encoder — no dependencies, no font files, no headless browser. The footer carries the seed, the format and, on the final frame, the winner. `--frames` samples long matches (keeping the opening bell and the finish), `--delay` is ms per frame (default 180), `--cols/--rows` set the character grid, `--scale 2` doubles it for slides.
 
 ## MVP scope (v0.1) — deliberately tiny
 

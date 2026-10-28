@@ -287,7 +287,7 @@ try: duel run bots/greedy.mjs builtin:random --seed 7`);
       cols: flags.cols || 80,
       rows: flags.rows || 24,
       frames: flags.frames || 40,
-      delayCs: flags.delay || 18,
+      delayCs: Math.max(1, Math.round((flags.delay ?? 180) / 10)), // --delay is ms everywhere in duel
       scale: flags.scale || 1,
     });
     const dest = flags.out || file.replace(/\.[^./\\]*$/, '') + '.gif';
