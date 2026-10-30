@@ -40,7 +40,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
  * `onTurn(replay)` gets the replay-so-far, so callers can persist incrementally.
  */
 export async function streamMatch({
-  cmdA, cmdB, seed, timeout = 1500, game = DEFAULT_GAME,
+  cmdA, cmdB, seed, timeout = 1500, game = DEFAULT_GAME, bans = [],
   players, delay = 250, every = 0, cols = 80, rows = 24,
   write = s => process.stdout.write(s), isTTY = Boolean(process.stdout.isTTY),
   onTurn = () => {}, sleepFn = sleep,
@@ -48,7 +48,7 @@ export async function streamMatch({
   const movesA = [], movesB = [];
   const fails = { a: 0, b: 0 };
   const maxT = maxTurnsFor(game);
-  const replay = { version: 1, game, seed, players, moves: [], result: { winner: 'draw', turns: 0 }, log: [] };
+  const replay = { version: 1, game, seed, players, ...(bans.length ? { bans } : {}), moves: [], result: { winner: 'draw', turns: 0 }, log: [] };
   const started = Date.now();
 
   const emit = (payload, update = false) => {
@@ -61,17 +61,17 @@ export async function streamMatch({
   try {
     let drawn = 0;
     for (let t = 0; t < maxT; t++) {
-      let sim = play(seed, movesA, movesB, game);
+      let sim = play(seed, movesA, movesB, game, bans);
       if (sim.result.stop !== 'moves') break; // already decided
       const [ra, rb] = await Promise.all([
-        askAgent(cmdA, agentView(sim.log, 0, t + 1, game), timeout),
-        askAgent(cmdB, agentView(sim.log, 1, t + 1, game), timeout),
+        askAgent(cmdA, agentView(sim.log, 0, t + 1, game, bans), timeout),
+        askAgent(cmdB, agentView(sim.log, 1, t + 1, game, bans), timeout),
       ]);
       if (!ra.ok) fails.a++;
       if (!rb.ok) fails.b++;
       movesA.push(ra.move); movesB.push(rb.move);
 
-      sim = play(seed, movesA, movesB, game);
+      sim = play(seed, movesA, movesB, game, bans);
       replay.moves = movesA.map((m, i) => [m, movesB[i]]);
       replay.log = sim.log;
       replay.result = sim.result;
@@ -99,8 +99,9 @@ export async function streamMatch({
       if (sim.result.stop !== 'moves') break;
     }
     // settle the result for matches that ended on the turn limit
-    replay.result = play(seed, movesA, movesB, game).result;
-    replay.log = play(seed, movesA, movesB, game).log;
+    replay.result = play(seed, movesA, movesB, game, bans).result;
+    replay.log = play(seed, movesA, movesB, game, bans).log;
+    if (bans.length) replay.bans = bans;
 
     const verdict = replay.result.winner === 'draw'
       ? 'draw'

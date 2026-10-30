@@ -94,3 +94,41 @@ test('streamReplay reruns a recording frame by frame (pipe mode is plain text)',
   assert.match(text, new RegExp(`turn ${replay.result.turns}/${replay.result.turns}`), 'ends on the final turn');
   assert.ok(!text.includes('\x1b['), 'no ANSI escapes on a pipe');
 });
+test('streamMatch honours a draft: the bans reach the agents and the replay', async () => {
+  const io = collector();
+  const bans = ['heavy', 'heal'];
+  const { replay } = await streamMatch({
+    cmdA: 'builtin:greedy', cmdB: 'builtin:random',
+    seed: 31, game: 'clash/2', bans, players: [{ name: 'a' }, { name: 'b' }],
+    delay: 0, write: io.write, isTTY: false, sleepFn: noSleep,
+  });
+  assert.deepEqual(replay.bans, bans);
+  const played = new Set(replay.moves.flat());
+  assert.ok(!played.has('heavy'), 'nobody plays a banned move');
+  assert.ok(!played.has('heal'));
+  assert.ok(verifyReplay(replay), 'a drafted stream still verifies');
+});
+
+test('a stream without a draft leaves the replay format untouched', async () => {
+  const { replay } = await streamMatch({
+    cmdA: 'builtin:greedy', cmdB: 'builtin:greedy', seed: 32,
+    players: [{ name: 'a' }, { name: 'b' }], delay: 0,
+    write: () => {}, isTTY: false, sleepFn: noSleep,
+  });
+  assert.ok(!('bans' in replay));
+});
+
+test('CLI: a bad replay path fails with one clean line', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  const { join: j } = await import('node:path');
+  const bin = j(fileURLToPath(new URL('.', import.meta.url)), '..', 'bin', 'duel.js');
+  const run = args => {
+    try { execFileSync(process.execPath, [bin, ...args], { encoding: 'utf8', stdio: 'pipe' }); return { code: 0, err: '' }; }
+    catch (e) { return { code: e.status, err: String(e.stderr) }; }
+  };
+  const r = run(['watch', '/tmp/definitely-not-a-replay.json']);
+  assert.equal(r.code, 1);
+  assert.match(r.err, /^duel: no such file/);
+  assert.doesNotMatch(r.err, /at .*node:fs/);
+});

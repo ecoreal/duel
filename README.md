@@ -115,6 +115,7 @@ One rule keeps it a game: **a draft may never remove the last attack**. Ban both
 
 ```bash
 duel stream bots/adapt.mjs builtin:greedy --delay 200
+duel stream bots/adapt.mjs builtin:greedy --pickban   # draft first, then fight
 duel stream duel-42.json --delay 400        # re-live a finished match, live
 ```
 

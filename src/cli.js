@@ -19,6 +19,7 @@ usage:
   duel tournament <agent...>          single-elimination bracket (--seed, --best)
   duel stream <replay>                stream a recording live (--delay ms)
   duel stream <agentA> <agentB>       spectate a live match as the agents play
+                                      [--pickban] draft before the first blow
   duel gif <replay> [--out f.gif]     the whole match as an animated GIF
                                       [--no-diff] full frames instead of deltas
   duel film <replay> [--every 3]      arena storyboard frames (paste-ready)
@@ -351,12 +352,19 @@ try: duel run bots/greedy.mjs builtin:random --seed 7`);
     const game = flags.game || DEFAULT_GAME;
     const players = [{ name: agentName(a) }, { name: agentName(b) }];
     const out = flags.out || `duel-${seed}-live.json`;
+    let bans = [];
+    if (flags.pickban) {
+      const { runDraft, draftLine } = await import('./draft.js');
+      const d = await runDraft({ cmdA: a, cmdB: b, seed, game, timeout });
+      bans = d.bans;
+      console.log(draftLine(d.picks, players.map(p => p.name), d.first));
+    }
     const { replay, fails } = await streamMatch({
-      cmdA: a, cmdB: b, seed, timeout, game, players,
+      cmdA: a, cmdB: b, seed, timeout, game, bans, players,
       delay, every: flags.every ?? 0, cols, rows,
     });
     if (!verifyReplay(replay)) console.error('warning: replay failed integrity check');
-    saveReplay(out, { seed, players, movesA: replay.moves.map(m => m[0]), movesB: replay.moves.map(m => m[1]), game });
+    saveReplay(out, { seed, players, movesA: replay.moves.map(m => m[0]), movesB: replay.moves.map(m => m[1]), game, bans });
     const bad = Object.entries(fails).filter(([, n]) => n > 0);
     if (bad.length) console.error(`⚠ ${bad.map(([side, n]) => `${players[side === 'a' ? 0 : 1].name}: ${n} jab${n === 1 ? '' : 's'}`).join(' · ')}`);
     console.log(`💾 replay → ${out}   re-live it: duel stream ${out}`);

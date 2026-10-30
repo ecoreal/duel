@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- 🎲 `duel stream --pickban` — the draft runs before the first blow, live, and the bans land in the replay written at the end (`duel stream` was the one path that skipped the draft).
+- 🐛 `bin/duel.js` now turns a bad path into one clean line (`duel: no such file: …`) instead of a node stack trace, matching `tape`.
+
 - 🎲 `--pickban` — a draft before every match, on `run` (single and `--best`), `eval`, `season`, `ladder` and `tournament`. Each side bans one move through the same stdin/stdout pipe (`{"phase":"ban",…}` in, `{"ban":"heavy"}` out), the seed decides who bans first (series alternate it), and a ban removes the move for **both** fighters. Bans are written into the replay (`"bans": [...]`, omitted when empty so old files stay byte-identical) and replayed exactly — drop or edit them and `verifyReplay` fails.
 - ⚖ A draft may never remove the last **attack** move (`MOVE_KIND`/`banAllowed`): banning `strike` *and* `heavy` used to leave two fighters healing at each other for 40 turns, so the engine now refuses that second ban instead of handing you a stalemate. `legalBans()` tells an agent what it is actually allowed to remove.
 - 🐛 `builtin:` bots (and ghosts) ignored the ban list when choosing a move — they would answer with a banned move and have it silently coerced. They now validate against `view.banned` like every other agent.
