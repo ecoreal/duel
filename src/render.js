@@ -46,7 +46,8 @@ function renderRopeStory(replay) {
   const { players, seed, log, result } = replay;
   const out = [];
   const verdict = result.winner === 'draw' ? 'DRAW' : `${(result.winner === 'a' ? players[0] : players[1]).name} WINS`;
-  out.push(bold(`⚔ ${players[0].name} vs ${players[1].name}`) + dim(` · seed ${seed} · ${replay.game || 'rope/1'} · ${verdict}`));
+  const banNote = replay.bans?.length ? ` · banned ${replay.bans.join(',')}` : '';
+  out.push(bold(`⚔ ${players[0].name} vs ${players[1].name}`) + dim(` · seed ${seed} · ${replay.game || 'rope/1'}${banNote} · ${verdict}`));
   out.push('');
   for (const t of log) {
     out.push(dim(`T${String(t.turn).padStart(2)} `) + `${ropeTurnText(t, players)}  ${dim(`knot ${fmtKnot(t.knot)} [${t.stamina[0]}:${t.stamina[1]}]`)}`);
@@ -64,7 +65,8 @@ function renderRopeFrame({ replay, turn, w = 80, h = 24, hint = true }) {
   const knot = last ? last.knot : 0;
   const lines = [];
 
-  const head = bold('⚔ duel') + dim(` · seed ${replay.seed} · turn ${log.length}/${result.turns} · ${replay.game || 'rope/1'}`);
+  const banNote = replay.bans?.length ? ` · banned ${replay.bans.join(',')}` : '';
+  const head = bold('⚔ duel') + dim(` · seed ${replay.seed} · turn ${log.length}/${result.turns} · ${replay.game || 'rope/1'}${banNote}`);
   const verdict = log.length === result.turns
     ? (result.winner === 'draw' ? c(33, 'DRAW') : c(32, `${(result.winner === 'a' ? players[0] : players[1]).name} WINS`))
     : '';
@@ -105,7 +107,8 @@ export function renderStory(replay) {
   const { players, seed, log, result } = replay;
   const out = [];
   const verdict = result.winner === 'draw' ? 'DRAW' : `${(result.winner === 'a' ? players[0] : players[1]).name} WINS`;
-  out.push(bold(`⚔ ${players[0].name} vs ${players[1].name}`) + dim(` · seed ${seed} · ${replay.game || 'clash/1'} · ${verdict}`));
+  const banNote = replay.bans?.length ? ` · banned ${replay.bans.join(',')}` : '';
+  out.push(bold(`⚔ ${players[0].name} vs ${players[1].name}`) + dim(` · seed ${seed} · ${replay.game || 'clash/1'}${banNote} · ${verdict}`));
   out.push('');
   for (const t of log) {
     const [ma, mb] = t.moves;
@@ -133,7 +136,8 @@ export function renderFrame({ replay, turn, w = 80, h = 24, hint = true }) {
   const charged = last ? last.charged : [false, false];
   const lines = [];
 
-  const head = bold('⚔ duel') + dim(` · seed ${replay.seed} · turn ${log.length}/${result.turns}`);
+  const banNote = replay.bans?.length ? ` · banned ${replay.bans.join(',')}` : '';
+  const head = bold('⚔ duel') + dim(` · seed ${replay.seed} · turn ${log.length}/${result.turns}${banNote}`);
   const verdict = log.length === result.turns
     ? (result.winner === 'draw' ? c(33, 'DRAW') : c(32, `${(result.winner === 'a' ? players[0] : players[1]).name} WINS`))
     : '';

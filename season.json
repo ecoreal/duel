@@ -1,0 +1,71 @@
+{
+  "week": 5,
+  "updated": "2026-10-30T14:36:20.731Z",
+  "table": [
+    {
+      "name": "adapt",
+      "rating": 1215.9,
+      "w": 1,
+      "l": 0,
+      "d": 3
+    },
+    {
+      "name": "greedy",
+      "rating": 1213.2,
+      "w": 1,
+      "l": 0,
+      "d": 3
+    },
+    {
+      "name": "random",
+      "rating": 1170.9,
+      "w": 0,
+      "l": 2,
+      "d": 2
+    }
+  ],
+  "matches": [
+    {
+      "a": "greedy",
+      "b": "random",
+      "winner": "a",
+      "turns": 4,
+      "seed": null
+    },
+    {
+      "a": "random",
+      "b": "greedy",
+      "winner": "draw",
+      "turns": 40,
+      "seed": null
+    },
+    {
+      "a": "greedy",
+      "b": "adapt",
+      "winner": "draw",
+      "turns": 40,
+      "seed": null
+    },
+    {
+      "a": "adapt",
+      "b": "greedy",
+      "winner": "draw",
+      "turns": 40,
+      "seed": null
+    },
+    {
+      "a": "random",
+      "b": "adapt",
+      "winner": "draw",
+      "turns": 40,
+      "seed": null
+    },
+    {
+      "a": "adapt",
+      "b": "random",
+      "winner": "a",
+      "turns": 5,
+      "seed": null
+    }
+  ]
+}

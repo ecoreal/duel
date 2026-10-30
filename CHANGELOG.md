@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- 🎲 `--pickban` — a draft before every match, on `run` (single and `--best`), `eval`, `season`, `ladder` and `tournament`. Each side bans one move through the same stdin/stdout pipe (`{"phase":"ban",…}` in, `{"ban":"heavy"}` out), the seed decides who bans first (series alternate it), and a ban removes the move for **both** fighters. Bans are written into the replay (`"bans": [...]`, omitted when empty so old files stay byte-identical) and replayed exactly — drop or edit them and `verifyReplay` fails.
+- ⚖ A draft may never remove the last **attack** move (`MOVE_KIND`/`banAllowed`): banning `strike` *and* `heavy` used to leave two fighters healing at each other for 40 turns, so the engine now refuses that second ban instead of handing you a stalemate. `legalBans()` tells an agent what it is actually allowed to remove.
+- 🐛 `builtin:` bots (and ghosts) ignored the ban list when choosing a move — they would answer with a banned move and have it silently coerced. They now validate against `view.banned` like every other agent.
+- 🧪 61 tests (47 → 61): 14 draft tests (order, determinism, attack-survival, stalemate prevention, malformed/silent/mute bots, ghost behaviour, replay integrity).
+
 - 🪶 `duel gif` writes **delta frames** now: pixels identical to the previous frame become transparent (disposal 1), so a replay's static arena — names, hp bars, borders — is only paid for once. 13-frame clash film: 37.0 KB → 19.8 KB; 31-frame rope film: 99 KB → 47.9 KB. `--no-diff` keeps the old full frames. Composites are byte-identical (tested by compositing both encodings).
 
 - 🎬 `duel stream <A> <B>` — live spectating: the arena frame is redrawn the moment both agents answer, not after the match is over. On a TTY it redraws in place (cursor hidden and restored, even on ctrl-c); piped, it emits one stable line per turn (`T07 greedy heals 9 · berserker HEAVY 24 · hp 46:71`), with `--every N` full frames for CI logs. `--delay`, `--cols/--rows`, `--out` (default `duel-<seed>-live.json`). `duel stream <replay.json>` streams a finished match instead. Mid-match frames show the real turn horizon (`turn 4/30`), never a premature winner — that bug only existed for the five minutes it took to find it.

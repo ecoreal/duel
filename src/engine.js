@@ -96,12 +96,55 @@ export function makeRng(seed) {
   };
 }
 
-// Per-game move validation + defaults. Unknown games fall back to clash moves.
-export const validMove = (m, gameId = DEFAULT_GAME) => {
-  if (GAMES[gameId]?.rope) return (typeof m === 'string' && ROPE_MOVES[m]) ? m : 'haul';
-  return (typeof m === 'string' && MOVES[m]) ? m : 'strike';
-};
+// Per-game move catalogue. Unknown games fall back to the clash moves.
+export const movesOf = gameId => (GAMES[gameId]?.rope ? ROPE_MOVES : MOVES);
 export const defaultMove = gameId => (GAMES[gameId]?.rope ? 'haul' : 'strike');
+
+// What a move is *for*. A draft that bans every attack leaves two fighters who
+// can only heal and charge at each other — a game that cannot end. So the ban
+// rule is stricter than "leave one move": leave one **attack**.
+export const MOVE_KIND = {
+  'clash/1': { strike: 'attack', heavy: 'attack', heal: 'recover', charge: 'setup' },
+  'clash/2': { strike: 'attack', heavy: 'attack', heal: 'recover', charge: 'setup' },
+  'rope/1': { haul: 'attack', lunge: 'attack', lean: 'defend', rest: 'recover' },
+};
+export const moveKind = (gameId, move) =>
+  ((MOVE_KIND[gameId] || MOVE_KIND[DEFAULT_GAME])[move]) || 'other';
+
+/** May this move be banned, given what is already gone? */
+export const banAllowed = (gameId, bans, move) => {
+  const all = Object.keys(movesOf(gameId));
+  if (!all.includes(move) || bans.includes(move)) return false;
+  const left = all.filter(m => m !== move && !bans.includes(m));
+  return left.some(m => moveKind(gameId, m) === 'attack');
+};
+
+/** A ban list that could never deadlock a game. */
+export const clampBans = (gameId, bans = []) => {
+  const out = [];
+  for (const b of [...new Set(bans)]) if (banAllowed(gameId, out, b)) out.push(b);
+  return out;
+};
+
+/** What a side is allowed to ban right now. */
+export const legalBans = (gameId, bans = []) =>
+  Object.keys(movesOf(gameId)).filter(m => banAllowed(gameId, clampBans(gameId, bans), m));
+
+// pick/ban: a banned move is simply not a legal move this game.
+export const legalMoves = (gameId, bans = []) => {
+  const b = clampBans(gameId, bans);
+  return Object.keys(movesOf(gameId)).filter(m => !b.includes(m));
+};
+
+// Per-game move validation + defaults. An unknown *or banned* move falls back to
+// the game's default when that is still legal, otherwise the first legal move.
+export const validMove = (m, gameId = DEFAULT_GAME, bans = []) => {
+  const all = movesOf(gameId);
+  if (typeof m === 'string' && all[m] && !bans.includes(m)) return m;
+  const legal = legalMoves(gameId, bans);
+  const d = defaultMove(gameId);
+  return legal.includes(d) ? d : legal[0];
+};
 export const maxTurnsFor = gameId => GAMES[gameId]?.maxTurns ?? MAX_TURNS;
 
 const roll = (rng, lo, hi) => lo + Math.floor(rng() * (hi - lo + 1));
@@ -120,7 +163,7 @@ function act(att, def, move, rng, mult) {
 
 // clash turn step — FROZEN MATH (clash/1 + clash/2 replay compatibility).
 // Do not touch RNG consumption, ordering or rounding here.
-function playClash(seed, movesA, movesB, gameId) {
+function playClash(seed, movesA, movesB, gameId, bans = []) {
   const rules = GAMES[gameId] || GAMES[DEFAULT_GAME];
   const mult = rules.chargeMult;
   const rng = makeRng(seed);
@@ -132,8 +175,8 @@ function playClash(seed, movesA, movesB, gameId) {
 
   for (let t = 0; t < MAX_TURNS && !winner; t++) {
     if (movesA[t] == null || movesB[t] == null) { stop = 'moves'; break; }
-    const ma = validMove(movesA[t]);
-    const mb = validMove(movesB[t]);
+    const ma = validMove(movesA[t], gameId, bans);
+    const mb = validMove(movesB[t], gameId, bans);
     // effects computed from the snapshot: no first-player advantage
     const fxA = act({ charged: charged[0] }, null, ma, rng, mult);
     const fxB = act({ charged: charged[1] }, null, mb, rng, mult);
@@ -175,7 +218,7 @@ function playClash(seed, movesA, movesB, gameId) {
 // Snapshot semantics like clash: both moves validate against pre-turn stamina,
 // then forces resolve (A's slip roll first). Knot sits on a 0.5 grid because
 // lean halves pulls; it is clamped to the rope's 13 cells [-6, +6].
-function playRope(seed, movesA, movesB) {
+function playRope(seed, movesA, movesB, bans = []) {
   const rules = GAMES['rope/1'];
   const rng = makeRng(seed);
   const stamina = [ROPE_STAMINA_MAX, ROPE_STAMINA_MAX];
@@ -187,7 +230,7 @@ function playRope(seed, movesA, movesB) {
   // validate against the snapshot: unknown move → haul (the jab of rope),
   // unaffordable haul/lunge → rest. No RNG involved.
   const coerce = (m, s) => {
-    const move = (typeof m === 'string' && ROPE_MOVES[m]) ? m : 'haul';
+    const move = validMove(m, 'rope/1', bans);
     if (move === 'haul' && s < ROPE_MOVES.haul.cost) return 'rest';
     if (move === 'lunge' && s < ROPE_MOVES.lunge.cost) return 'rest';
     return move;
@@ -239,14 +282,31 @@ function playRope(seed, movesA, movesB) {
 
 // Per-game dispatch: each game owns its step function. clash/1 + clash/2 share
 // the frozen playClash; anything unrecognized falls back to it (old behavior).
-export function play(seed, movesA, movesB, gameId = DEFAULT_GAME) {
-  if (gameId === 'rope/1') return playRope(seed, movesA, movesB);
-  return playClash(seed, movesA, movesB, gameId);
+export function play(seed, movesA, movesB, gameId = DEFAULT_GAME, bans = []) {
+  const b = clampBans(gameId, bans);
+  if (gameId === 'rope/1') return playRope(seed, movesA, movesB, b);
+  return playClash(seed, movesA, movesB, gameId, b);
+}
+
+// The view an agent sees when asked to ban a move before the match.
+export function banView({ you, gameId = DEFAULT_GAME, bans = [], turn = 0, seed = 0 }) {
+  const legal = legalBans(gameId, bans);
+  return {
+    phase: 'ban',
+    game: gameId,
+    seed,
+    you,
+    turn,
+    moves: legal,       // what is still on the table
+    banned: bans,       // already gone (yours and theirs)
+    rules: { ban: 'remove one move from this game — the foe loses it too' },
+  };
 }
 
 // State an agent sees on its turn. `you` is 0 or 1.
-export function agentView(matchLog, you, turn, gameId = DEFAULT_GAME) {
+export function agentView(matchLog, you, turn, gameId = DEFAULT_GAME, bans = []) {
   const rules = GAMES[gameId] || GAMES[DEFAULT_GAME];
+  const banned = clampBans(gameId, bans);
   if (rules.rope) {
     const last = matchLog[matchLog.length - 1];
     const knot = last ? last.knot : 0;
@@ -262,7 +322,8 @@ export function agentView(matchLog, you, turn, gameId = DEFAULT_GAME) {
       foeStamina,
       me: { stamina, dir: you === 0 ? 1 : -1 },  // dir: sign that pulls the knot your way
       foe: { stamina: foeStamina, dir: you === 0 ? -1 : 1 },
-      moves: Object.keys(ROPE_MOVES),
+      moves: legalMoves(gameId, banned),
+      banned,
       rules: {
         haul: 'knot 1 your way, 3 stamina, 15% slip (knot 1 the other way instead)',
         lunge: 'knot 2 your way, 4 stamina (needs 4+), same 15% slip but the knot moves 2 the other way',
@@ -287,7 +348,8 @@ export function agentView(matchLog, you, turn, gameId = DEFAULT_GAME) {
     you,
     me,
     foe,
-    moves: Object.keys(MOVES),
+    moves: legalMoves(gameId, banned),
+    banned,
     rules: { strike: '10-16 dmg', heavy: '18-26 dmg, 20% self-recoil 5', heal: '8-14 hp (cap 100)', charge: chargeRule },
     history: matchLog.map(l => ({ turn: l.turn, moves: l.moves, hp: l.hp })),
   };

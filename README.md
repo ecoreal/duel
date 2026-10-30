@@ -69,12 +69,19 @@ stdin  → {"game":"clash/1","turn":3,"me":{"hp":72,"charged":true},"foe":{...},
 stdout ← {"move":"strike"}        # 1.5s default; timeout = a jab (strike)
 ```
 
+With `--pickban`, one extra exchange happens first — same pipe, different question:
+
+```
+stdin  → {"phase":"ban","game":"clash/2","moves":["strike","heavy","heal","charge"],"banned":[]}
+stdout ← {"ban":"heavy"}          # a ban removes the move for BOTH fighters
+```
+
 Sample bots ship in `bots/`: `random.sh` (4 lines of bash), `greedy.mjs` (readable strategy), `adapt.mjs` (reads foe history, counters it), `patient.mjs` (beats adapt 72% — see #1 for the eval-driven story), `llm.mjs` (any OpenAI-compatible endpoint, use `--timeout 10000`). Built-in sparring partners: `builtin:random`, `builtin:greedy`, `builtin:rope-greedy` — zero setup.
 
 ## CLI
 
 ```
-duel run <A> <B> [--seed N] [--best 3] [--timeout MS] [--json]
+duel run <A> <B> [--seed N] [--best 3] [--timeout MS] [--json] [--pickban]
 duel watch <replay.json>        # space pause · ←/→ step · +/- speed
 duel stream <A> <B>             # live: watch the agents play, frame by frame
 duel stream <replay.json>       # the same, for a finished match (--delay ms)
@@ -85,6 +92,22 @@ duel frame <replay.json> [turn] # headless render (--plain) — CI & README-frie
 duel ladder <A> <B> [...]       # double round-robin → ELO table + ladder.json
 duel bots                       # where the sample bots live
 ```
+
+## 🎲 `duel run --pickban` — the draft
+
+```bash
+duel run bots/patient.mjs bots/greedy.mjs --seed 21 --pickban
+```
+
+```
+🎲 draft: greedy bans strike · patient bans heal (greedy first)
+⚔ patient vs greedy · seed 21 · 4 turns
+   greedy wins — hp 0:29
+```
+
+Before the first punch, each side removes one move — and a ban applies to **both** fighters, so the draft is really a negotiation about what kind of game this will be. The seed decides who bans first, a best-of series alternates that advantage, and a replay records its bans (`"bans": ["strike","heal"]`), so a drafted match verifies exactly like any other — drop or edit the bans and the log no longer reproduces.
+
+One rule keeps it a game: **a draft may never remove the last attack**. Ban both `strike` and `heavy` and every turn is two fighters healing at each other until the turn limit — the engine refuses that ban rather than hand you a stalemate. It works in `run`, `eval`, `season`, `ladder` and `tournament`.
 
 ## 🎬 `duel stream` — live, not a recording
 
@@ -133,8 +156,9 @@ Frames after the first are **transparent deltas** (GIF disposal 1): the names, t
 
 - ~~v0.2: submit/adopt~~ ✅ **shipped** — `duel adopt <gist>`, then `duel ladder ghost:adopted.json:0 builtin:greedy` — fight the recording in your own ladder.
 - ~~v0.3: game #2~~ ✅ **shipped** — `rope/1`, tug of war (`--game rope/1`): the engine interface really is game-agnostic. Best-of-N with pick/ban still open.
-- ~~v0.4: `duel stream`~~ ✅ **shipped** — live spectate while the agents play (TTY redraw, or one line per turn on a pipe), with the replay written at the end. `duel gif` turns any match into an animated GIF with a zero-dep GIF89a encoder.
-- open: best-of-N with pick/ban (the rope/1 interface already exposes `moves`), and a `--game` for the tournament workflow beyond clash/rope.
+- ~~v0.4: `duel stream`~~ ✅ **shipped** — live spectate while the agents play (TTY redraw, or one line per turn on a pipe), with the replay written at the end. `duel gif` turns any match into an animated GIF with a zero-dep GIF89a encoder (transparent delta frames: the static arena is paid for once).
+- ~~pick/ban~~ ✅ **shipped** — `--pickban` on run/eval/season/ladder/tournament: one ban per side, seed-decided order, bans stored in the replay, and an engine rule that refuses to draft away the last attack.
+- open: game #3 (the interface has now survived two very different games), and a `duel draft <A> <B>` command that shows the ban conversation on its own.
 
 ## Contributing
 

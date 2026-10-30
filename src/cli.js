@@ -11,6 +11,7 @@ const HELP = `⚔ duel ${VERSION} — a deterministic AI agent arena in your ter
 
 usage:
   duel run <agentA> <agentB> [--seed N] [--game clash/2|rope/1] [--timeout MS] [--json]
+                              [--pickban] each side bans one move before the match
   duel watch <replay.json>            spectate with playback controls
   duel frame <replay.json> [turn]     render one frame to stdout (--plain)
   duel eval <A> <B> [--games 50]      statistical matchup report (sides swapped)
@@ -45,6 +46,7 @@ function parseFlags(argv) {
     else if (a === '--cols') flags.cols = Number(argv[++i]);
     else if (a === '--rows') flags.rows = Number(argv[++i]);
     else if (a === '--scale') flags.scale = Number(argv[++i]);
+    else if (a === '--pickban') flags.pickban = true;
     else if (a === '--no-diff') flags.diff = false;
     else if (a === '--diff') flags.diff = true;
     else if (a === '--height') flags.height = Number(argv[++i]);
@@ -62,16 +64,16 @@ function parseFlags(argv) {
 
 // Drives the engine turn by turn, asking each agent for its move.
 // Exported for tests: the real end-to-end path (per-game turn limit included).
-export async function runMatch(cmdA, cmdB, { seed, timeout, game = DEFAULT_GAME }) {
+export async function runMatch(cmdA, cmdB, { seed, timeout, game = DEFAULT_GAME, bans = [] }) {
   const movesA = [], movesB = [];
   const fails = { a: 0, b: 0 };
   const maxT = maxTurnsFor(game);
   for (let t = 0; t < maxT; t++) {
-    let sim = play(seed, movesA, movesB, game);
+    let sim = play(seed, movesA, movesB, game, bans);
     if (sim.result.stop !== 'moves') break; // already decided
     const [ra, rb] = await Promise.all([
-      askAgent(cmdA, agentView(sim.log, 0, t + 1, game), timeout),
-      askAgent(cmdB, agentView(sim.log, 1, t + 1, game), timeout),
+      askAgent(cmdA, agentView(sim.log, 0, t + 1, game, bans), timeout),
+      askAgent(cmdB, agentView(sim.log, 1, t + 1, game, bans), timeout),
     ]);
     if (!ra.ok) fails.a++;
     if (!rb.ok) fails.b++;
@@ -130,15 +132,22 @@ try: duel run bots/greedy.mjs builtin:random --seed 7`);
       const [nameA, nameB] = [agentName(a), agentName(b)];
       let ca = 0, cb = 0, cd = 0;
       const prefix = flags.out ? flags.out.replace(/\.json$/, '') : `duel-${seed}`;
+      const { runDraft } = flags.pickban ? await import('./draft.js') : {};
       for (let g = 0; g < best; g++) {
         const swap = g % 2 === 1;
         const A = swap ? b : a, B = swap ? a : b;
         const s = seed + g;
-        const { movesA, movesB } = await runMatch(A, B, { seed: s, timeout, game });
-        const r = play(s, movesA, movesB, game).result;
+        let bans = [];
+        if (flags.pickban) {
+          const d = await runDraft({ cmdA: A, cmdB: B, seed: s, game, timeout });
+          bans = d.bans;
+          console.log(dim(`  draft: ${d.picks.map(p => `${agentName(p.side === 0 ? A : B)} bans ${p.ban}`).join(' · ')}`));
+        }
+        const { movesA, movesB } = await runMatch(A, B, { seed: s, timeout, game, bans });
+        const r = play(s, movesA, movesB, game, bans).result;
         const winnerCorner = r.winner === 'a' ? (swap ? 'b' : 'a') : r.winner === 'b' ? (swap ? 'a' : 'b') : 'd';
         if (winnerCorner === 'a') ca++; else if (winnerCorner === 'b') cb++; else cd++;
-        saveReplay(`${prefix}-g${g + 1}.json`, { seed: s, players: [{ name: agentName(A) }, { name: agentName(B) }], movesA, movesB, game });
+        saveReplay(`${prefix}-g${g + 1}.json`, { seed: s, players: [{ name: agentName(A) }, { name: agentName(B) }], movesA, movesB, game, bans });
         const wn = winnerCorner === 'a' ? nameA : winnerCorner === 'b' ? nameB : 'draw';
         console.log(dim(`  game ${g + 1}: ${wn} (${scoreOf(game, r)}) → ${prefix}-g${g + 1}.json`));
       }
@@ -146,10 +155,17 @@ try: duel run bots/greedy.mjs builtin:random --seed 7`);
       console.log(`   ${ca === cb ? 'series drawn' : ca > cb ? `${nameA} takes the series` : `${nameB} takes the series`}`);
       return;
     }
-    const { movesA, movesB, fails } = await runMatch(a, b, { seed, timeout, game });
     const players = [{ name: agentName(a) }, { name: agentName(b) }];
+    let bans = [];
+    if (flags.pickban) {
+      const { runDraft, draftLine } = await import('./draft.js');
+      const d = await runDraft({ cmdA: a, cmdB: b, seed, game, timeout });
+      bans = d.bans;
+      console.log(draftLine(d.picks, players.map(p => p.name), d.first));
+    }
+    const { movesA, movesB, fails } = await runMatch(a, b, { seed, timeout, game, bans });
     const out = flags.out || `duel-${seed}.json`;
-    const replay = saveReplay(out, { seed, players, movesA, movesB, game });
+    const replay = saveReplay(out, { seed, players, movesA, movesB, game, bans });
     if (!verifyReplay(replay)) console.error('warning: replay failed integrity check');
     if (flags.json) { console.log(JSON.stringify({ ...replay, log: undefined })); return; }
     const { result } = replay;
@@ -184,7 +200,8 @@ try: duel run bots/greedy.mjs builtin:random --seed 7`);
       if (n > 0) a.name = `${a.name}#${n + 1}`;
     }
     const best = flags.best ?? 1;
-    console.log(`🥇 bracket · seed ${seed} · ${game}${best > 1 ? ` · best-of-${best}` : ''}`);
+    const { runDraft } = flags.pickban ? await import('./draft.js') : {};
+    console.log(`🥇 bracket · seed ${seed} · ${game}${best > 1 ? ` · best-of-${best}` : ''}${flags.pickban ? ' · with draft' : ''}`);
     const t = await runTournament(agents, async (A, B, matchIndex) => {
       // best-of with side rotation, then sudden death until someone leads
       let ca = 0, cb = 0, g = 0, lastSeed = null, lastMoves = null;
@@ -194,8 +211,10 @@ try: duel run bots/greedy.mjs builtin:random --seed 7`);
         const swap = (g + matchIndex) % 2 === 1;
         const AG = swap ? B : A, BG = swap ? A : B;
         const s = seed + matchIndex * 100 + g;
-        const { movesA, movesB } = await runMatch(AG.cmd, BG.cmd, { seed: s, timeout, game });
-        const r = play(s, movesA, movesB, game).result;
+        let bans = [];
+        if (flags.pickban) bans = (await runDraft({ cmdA: AG.cmd, cmdB: BG.cmd, seed: s, game, timeout })).bans;
+        const { movesA, movesB } = await runMatch(AG.cmd, BG.cmd, { seed: s, timeout, game, bans });
+        const r = play(s, movesA, movesB, game, bans).result;
         lastSeed = s;
         lastMoves = swap ? [movesB, movesA] : [movesA, movesB]; // canonical corner order
         const corner = r.winner === 'a' ? (swap ? 'b' : 'a') : r.winner === 'b' ? (swap ? 'a' : 'b') : 'd';
@@ -236,10 +255,13 @@ try: duel run bots/greedy.mjs builtin:random --seed 7`);
     const timeout = flags.timeout ?? 1500;
     const game = flags.game || DEFAULT_GAME;
     const week = flags.week ? Number(flags.week) : seasonSeed();
+    const { runDraft } = flags.pickban ? await import('./draft.js') : {};
     const { table, matches, weekSeed } = await runSeason(agents, async (A, B, i) => {
       const seed = week * 1000 + i;
-      const { movesA, movesB } = await runMatch(A.cmd, B.cmd, { seed, timeout, game });
-      const { result } = play(seed, movesA, movesB, game);
+      let bans = [];
+      if (flags.pickban) bans = (await runDraft({ cmdA: A.cmd, cmdB: B.cmd, seed, game, timeout })).bans;
+      const { movesA, movesB } = await runMatch(A.cmd, B.cmd, { seed, timeout, game, bans });
+      const { result } = play(seed, movesA, movesB, game, bans);
       return { winner: result.winner, turns: result.turns, seed };
     }, week);
     const outFile = flags.out || 'season.json';
@@ -260,12 +282,15 @@ try: duel run bots/greedy.mjs builtin:random --seed 7`);
     const game = flags.game || DEFAULT_GAME;
     const [nameA, nameB] = [agentName(a), agentName(b)];
     let wa = 0, wb = 0, dr = 0, turns = 0, jabs = 0;
+    const { runDraft } = flags.pickban ? await import('./draft.js') : {};
     for (let g = 0; g < games; g++) {
       const swap = g % 2 === 1;
       const A = swap ? b : a, B = swap ? a : b;
       const seed = seedBase + Math.floor(g / 2);
-      const { movesA, movesB, fails } = await runMatch(A, B, { seed, timeout, game });
-      const r = play(seed, movesA, movesB, game).result;
+      let bans = [];
+      if (flags.pickban) bans = (await runDraft({ cmdA: A, cmdB: B, seed, game, timeout })).bans;
+      const { movesA, movesB, fails } = await runMatch(A, B, { seed, timeout, game, bans });
+      const r = play(seed, movesA, movesB, game, bans).result;
       turns += r.turns;
       jabs += fails.a + fails.b;
       const corner = r.winner === 'a' ? (swap ? 'b' : 'a') : r.winner === 'b' ? (swap ? 'a' : 'b') : 'd';
@@ -392,10 +417,13 @@ try: duel run bots/greedy.mjs builtin:random --seed 7`);
     const timeout = flags.timeout ?? 1500;
     const game = flags.game || DEFAULT_GAME;
     let matchCount = 0;
+    const { runDraft } = flags.pickban ? await import('./draft.js') : {};
     const { table, matches } = await runLadder(agents, async (A, B) => {
       const seed = seedBase + matchCount++;
-      const { movesA, movesB } = await runMatch(A.cmd, B.cmd, { seed, timeout, game });
-      const { result } = play(seed, movesA, movesB, game);
+      let bans = [];
+      if (flags.pickban) bans = (await runDraft({ cmdA: A.cmd, cmdB: B.cmd, seed, game, timeout })).bans;
+      const { movesA, movesB } = await runMatch(A.cmd, B.cmd, { seed, timeout, game, bans });
+      const { result } = play(seed, movesA, movesB, game, bans);
       return { winner: result.winner, turns: result.turns, seed };
     });
     writeFileSync('ladder.json', JSON.stringify({ updated: new Date().toISOString(), table, matches }, null, 2));
