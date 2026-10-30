@@ -1,7 +1,7 @@
 // duel film: a replay → an animated GIF. Every turn is a frame, rendered by the
 // same renderFrame() the TUI uses, so the GIF can never drift from the arena.
 import { renderFrame, vis } from './render.js';
-import { createCanvas, ansiLinesToCanvas, rect, text, C, PALETTE } from './pixels.js';
+import { createCanvas, ansiLinesToCanvas, rect, text, C, PALETTE, TRANSPARENT } from './pixels.js';
 import { encodeGif } from './gif.js';
 import { ADVANCE, LINE_H } from './font.js';
 import { writeFileSync } from 'node:fs';
@@ -12,7 +12,28 @@ import { writeFileSync } from 'node:fs';
  *  frames:    animation length; long matches are sampled evenly, always
  *             including turn 0 and the final turn
  */
-export function buildReplayFilm({ replay, cols = 80, rows = 24, frames: maxFrames = 40, delayCs = 18, scale = 1 } = {}) {
+/**
+ * Full frames → delta frames: identical pixels become TRANSPARENT and the
+ * viewer keeps what it already had (disposal 1). Frame 0 stays complete. In a
+ * replay most of the arena — names, health bars, the border — never moves, so
+ * this is where the bytes are.
+ */
+export function deltaFrames(frames, transparentIndex = TRANSPARENT) {
+  let prev = null;
+  return frames.map(f => {
+    if (!prev) { prev = f.pixels.slice(); return { ...f, changed: f.pixels.length }; }
+    const out = new Uint8Array(f.pixels.length);
+    let changed = 0;
+    for (let i = 0; i < f.pixels.length; i++) {
+      if (f.pixels[i] === prev[i]) out[i] = transparentIndex;
+      else { out[i] = f.pixels[i]; changed++; }
+    }
+    prev = f.pixels.slice();
+    return { ...f, pixels: out, changed };
+  });
+}
+
+export function buildReplayFilm({ replay, cols = 80, rows = 24, frames: maxFrames = 40, delayCs = 18, scale = 1, diff = true } = {}) {
   const total = replay.result.turns;
   const pad = 6;
   const width = cols * ADVANCE * scale + pad * 2;
@@ -44,7 +65,14 @@ export function buildReplayFilm({ replay, cols = 80, rows = 24, frames: maxFrame
     text(cv, width - pad - right.length * ADVANCE * scale, bottom + LINE_H * scale, right, turn >= total ? C.hue(2, 1) : C.hue(6, 1), scale);
     out.push({ pixels: cv.px, delayCs });
   }
-  return { width, height, palette, frames: out, stops };
+  return {
+    width,
+    height,
+    palette,
+    frames: diff ? deltaFrames(out) : out,
+    stops,
+    transparent: diff ? TRANSPARENT : null,
+  };
 }
 
 /** Write the film as an animated GIF. */

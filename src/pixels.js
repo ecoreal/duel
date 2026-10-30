@@ -19,6 +19,10 @@ export const PALETTE = [
   '#b1bac4', '#f0f6fc', '#6e7681', // white
 ].map(hex);
 
+// "unchanged since the previous frame" — a real slot in the (padded) table that
+// transparent frames simply never paint.
+export const TRANSPARENT = PALETTE.length;
+
 export const C = {
   bg: 0, ink: 1, dim: 2, faint: 3, band: 4,
   hue: (h, mode = 0) => 5 + h * 3 + mode,

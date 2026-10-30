@@ -2,9 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { loadReplay } from '../src/replay.js';
 import { play } from '../src/engine.js';
-import { buildReplayFilm, filmStops, writeFilm } from '../src/film.js';
+import { buildReplayFilm, filmStops, writeFilm, deltaFrames } from '../src/film.js';
 import { encodeGif } from '../src/gif.js';
-import { PALETTE, C } from '../src/pixels.js';
+import { PALETTE, C, TRANSPARENT } from '../src/pixels.js';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -22,7 +22,7 @@ test('buildReplayFilm: deterministic, palette-safe, starts at turn 0 and ends at
   assert.equal(a.stops[a.stops.length - 1], replay.result.turns, 'last frame is the final turn');
   for (const f of a.frames) {
     assert.equal(f.pixels.length, a.width * a.height);
-    assert.ok(Math.max(...f.pixels) < PALETTE.length);
+    assert.ok(Math.max(...f.pixels) <= TRANSPARENT, 'palette slot or the transparent marker');
   }
   assert.deepEqual(a.frames.map(f => [...f.pixels]), b.frames.map(f => [...f.pixels]));
 });
@@ -85,4 +85,41 @@ test('a film of an empty (zero-turn) match still encodes', () => {
   const film = buildReplayFilm({ replay, frames: 4 });
   assert.equal(film.frames.length, 1);
   assert.ok(encodeGif(film).length > 0);
+});
+test('deltaFrames: frame 0 complete, later frames only the changes', () => {
+  const a = new Uint8Array([1, 2, 3, 4]);
+  const b = new Uint8Array([1, 9, 3, 9]);
+  const out = deltaFrames([{ pixels: a }, { pixels: b }]);
+  assert.deepEqual([...out[0].pixels], [1, 2, 3, 4]);
+  assert.deepEqual([...out[1].pixels], [TRANSPARENT, 9, TRANSPARENT, 9]);
+  assert.equal(out[1].changed, 2);
+});
+
+test('buildReplayFilm defaults to deltas and the composite is unchanged', () => {
+  const replay = rope();
+  const opts = { replay, frames: 12 };
+  const delta = buildReplayFilm(opts);
+  const full = buildReplayFilm({ ...opts, diff: false });
+  assert.equal(delta.transparent, TRANSPARENT);
+  assert.equal(full.transparent, null);
+  assert.ok(delta.frames[0].pixels.every(v => v !== TRANSPARENT), 'the opening bell is complete');
+  const render = film => {
+    const screen = new Uint8Array(film.width * film.height);
+    return film.frames.map(f => {
+      for (let i = 0; i < screen.length; i++) {
+        if (film.transparent == null || f.pixels[i] !== film.transparent) screen[i] = f.pixels[i];
+      }
+      return [...screen];
+    });
+  };
+  assert.deepEqual(render(delta), render(full));
+});
+
+test('deltas make the file smaller for both games', () => {
+  for (const replay of [clash(), rope()]) {
+    const opts = { replay, frames: 14 };
+    const d = encodeGif(buildReplayFilm(opts));
+    const f = encodeGif(buildReplayFilm({ ...opts, diff: false }));
+    assert.ok(d.length < f.length, `${replay.game}: delta ${d.length} vs full ${f.length}`);
+  }
 });

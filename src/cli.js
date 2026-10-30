@@ -19,6 +19,7 @@ usage:
   duel stream <replay>                stream a recording live (--delay ms)
   duel stream <agentA> <agentB>       spectate a live match as the agents play
   duel gif <replay> [--out f.gif]     the whole match as an animated GIF
+                                      [--no-diff] full frames instead of deltas
   duel film <replay> [--every 3]      arena storyboard frames (paste-ready)
   duel rules [game]                   print the rulesets
   duel ladder <agent...>              round-robin, ELO table -> ladder.json
@@ -44,6 +45,8 @@ function parseFlags(argv) {
     else if (a === '--cols') flags.cols = Number(argv[++i]);
     else if (a === '--rows') flags.rows = Number(argv[++i]);
     else if (a === '--scale') flags.scale = Number(argv[++i]);
+    else if (a === '--no-diff') flags.diff = false;
+    else if (a === '--diff') flags.diff = true;
     else if (a === '--height') flags.height = Number(argv[++i]);
     else if (a === '--out') flags.out = argv[++i];
     else if (a === '--timeout') flags.timeout = Number(argv[++i]);
@@ -289,10 +292,12 @@ try: duel run bots/greedy.mjs builtin:random --seed 7`);
       frames: flags.frames || 40,
       delayCs: Math.max(1, Math.round((flags.delay ?? 180) / 10)), // --delay is ms everywhere in duel
       scale: flags.scale || 1,
+      diff: flags.diff !== false,
     });
     const dest = flags.out || file.replace(/\.[^./\\]*$/, '') + '.gif';
     const r = writeFilm(dest, film);
-    console.log(`🎞 ${r.frames} frames · ${r.width}x${r.height} · ${(r.bytes / 1024).toFixed(1)} KB → ${r.path}`);
+    const mode = film.transparent != null ? 'delta' : 'full';
+    console.log(`🎞 ${r.frames} frames · ${r.width}x${r.height} · ${(r.bytes / 1024).toFixed(1)} KB (${mode}) → ${r.path}`);
     return;
   }
 

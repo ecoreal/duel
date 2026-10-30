@@ -112,6 +112,8 @@ duel gif duel-42.json                    # → duel-42.gif
 
 Every turn is a frame of the arena, rendered by the same `renderFrame()` the TUI uses (so the GIF can never drift from what you saw), rasterized with a hand-drawn 5×7 bitmap font and encoded by a hand-written GIF89a/LZW encoder — no dependencies, no font files, no headless browser. The footer carries the seed, the format and, on the final frame, the winner. `--frames` samples long matches (keeping the opening bell and the finish), `--delay` is ms per frame (default 180), `--cols/--rows` set the character grid, `--scale 2` doubles it for slides.
 
+Frames after the first are **transparent deltas** (GIF disposal 1): the names, the health bars and the border never move, so they cost nothing after the opening frame — a 13-frame clash film goes from 37.0 KB to 19.8 KB with an identical composite. `--no-diff` gives you the naive full frames.
+
 ## MVP scope (v0.1) — deliberately tiny
 
 **In:** one game (`clash/1`), executable-agent protocol, deterministic engine + replay verify, spectator TUI, ELO ladder, three sample bots.

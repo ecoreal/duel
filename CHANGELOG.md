@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- 🪶 `duel gif` writes **delta frames** now: pixels identical to the previous frame become transparent (disposal 1), so a replay's static arena — names, hp bars, borders — is only paid for once. 13-frame clash film: 37.0 KB → 19.8 KB; 31-frame rope film: 99 KB → 47.9 KB. `--no-diff` keeps the old full frames. Composites are byte-identical (tested by compositing both encodings).
+
 - 🎬 `duel stream <A> <B>` — live spectating: the arena frame is redrawn the moment both agents answer, not after the match is over. On a TTY it redraws in place (cursor hidden and restored, even on ctrl-c); piped, it emits one stable line per turn (`T07 greedy heals 9 · berserker HEAVY 24 · hp 46:71`), with `--every N` full frames for CI logs. `--delay`, `--cols/--rows`, `--out` (default `duel-<seed>-live.json`). `duel stream <replay.json>` streams a finished match instead. Mid-match frames show the real turn horizon (`turn 4/30`), never a premature winner — that bug only existed for the five minutes it took to find it.
 - 🎞 `duel gif <replay> [--out f.gif]` — a whole match as an animated GIF: one frame per turn via the same `renderFrame()` the TUI uses, rasterized with a hand-drawn 5×7 bitmap font and encoded by a hand-written GIF89a/LZW encoder (`src/gif.js`, `src/pixels.js`, `src/film.js`). Zero deps, no font files, no browser. `--frames` samples long matches (always keeping the opening bell and the finish), `--cols/--rows`, `--scale`, `--delay`. Deterministic: same replay in, byte-identical GIF out.
 - 🧪 44 tests (30 → 44): 8 film/GIF (determinism, verdict colour, sampling, empty matches) + 6 stream (turn-per-line, in-place redraw, onTurn ordering, replay integrity, no premature verdicts).
