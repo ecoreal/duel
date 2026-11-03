@@ -3,3 +3,4 @@ node_modules/
 .DS_Store
 /ladder.json
 /duel-*.json
+/season.json
