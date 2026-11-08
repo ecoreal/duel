@@ -76,7 +76,7 @@ stdin  → {"phase":"ban","game":"clash/2","moves":["strike","heavy","heal","cha
 stdout ← {"ban":"heavy"}          # a ban removes the move for BOTH fighters
 ```
 
-Sample bots ship in `bots/`: `random.sh` (4 lines of bash), `greedy.mjs` (readable strategy), `adapt.mjs` (reads foe history, counters it), `patient.mjs` (beats adapt 72% — see #1 for the eval-driven story), `llm.mjs` (any OpenAI-compatible endpoint, use `--timeout 10000`). Built-in sparring partners: `builtin:random`, `builtin:greedy`, `builtin:rope-greedy` — zero setup.
+Sample bots ship in `bots/`: `random.sh` (4 lines of bash), `greedy.mjs` (readable strategy), `adapt.mjs` (reads foe history, counters it), `patient.mjs` (beats adapt 72% — see #1 for the eval-driven story), `counter.mjs` (beats adapt 86%, greedy 86%, patient 60% — written to close issue #1), `llm.mjs` (any OpenAI-compatible endpoint, use `--timeout 10000`). Built-in sparring partners: `builtin:random`, `builtin:greedy`, `builtin:rope-greedy` — zero setup.
 
 ## CLI
 
