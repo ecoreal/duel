@@ -22,9 +22,14 @@ test('buildReplayFilm: deterministic, palette-safe, starts at turn 0 and ends at
   assert.equal(a.stops[a.stops.length - 1], replay.result.turns, 'last frame is the final turn');
   for (const f of a.frames) {
     assert.equal(f.pixels.length, a.width * a.height);
-    assert.ok(Math.max(...f.pixels) <= TRANSPARENT, 'palette slot or the transparent marker');
+    let maxV = 0; for (const v of f.pixels) if (v > maxV) maxV = v;
+    assert.ok(maxV <= TRANSPARENT, 'palette slot or the transparent marker');
   }
-  assert.deepEqual(a.frames.map(f => [...f.pixels]), b.frames.map(f => [...f.pixels]));
+  // byte-wise compare — never spread a 200k-pixel frame onto the call stack
+  assert.equal(a.frames.length, b.frames.length);
+  for (let i = 0; i < a.frames.length; i++) {
+    assert.ok(Buffer.from(a.frames[i].pixels).equals(Buffer.from(b.frames[i].pixels)), `frame ${i} identical`);
+  }
 });
 
 test('frames are sampled when a match is longer than the budget', () => {
