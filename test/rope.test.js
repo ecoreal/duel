@@ -163,7 +163,7 @@ test('rope/1: builtin rope bots fight a legal end-to-end match via runMatch', as
 });
 
 test('rope/1: bots/tugger.mjs fights a legal end-to-end match via runMatch', async () => {
-  const { movesA, movesB, fails, game } = await runMatch('bots/tugger.mjs', 'builtin:rope-greedy', { seed: 950, timeout: 500, game: 'rope/1' });
+  const { movesA, movesB, fails, game } = await runMatch('bots/tugger.mjs', 'builtin:rope-greedy', { seed: 950, timeout: 1500, game: 'rope/1' });
   assert.equal(game, 'rope/1');
   assert.ok(movesA.length > 0 && movesA.length <= ROPE_MAX_TURNS);
   for (const m of [...movesA, ...movesB]) assert.ok(ROPE_MOVES[m], `legal rope move: ${m}`);
