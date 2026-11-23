@@ -1,41 +1,41 @@
 {
-  "week": 202647,
-  "updated": "2026-11-16T10:42:42.904Z",
+  "week": 202648,
+  "updated": "2026-11-23T11:53:13.089Z",
   "table": [
     {
       "name": "patient",
-      "rating": 1238.7,
-      "w": 6,
-      "l": 2,
-      "d": 0
+      "rating": 1286.7,
+      "w": 7,
+      "l": 0,
+      "d": 1
     },
     {
       "name": "greedy#2",
-      "rating": 1226.3,
+      "rating": 1235.6,
       "w": 5,
-      "l": 3,
-      "d": 0
+      "l": 2,
+      "d": 1
     },
     {
       "name": "greedy",
-      "rating": 1205.1,
-      "w": 4,
-      "l": 4,
+      "rating": 1180.7,
+      "w": 3,
+      "l": 5,
       "d": 0
     },
     {
       "name": "adapt",
-      "rating": 1175.6,
+      "rating": 1177.1,
       "w": 3,
       "l": 5,
       "d": 0
     },
     {
       "name": "random",
-      "rating": 1154.3,
-      "w": 2,
+      "rating": 1119.9,
+      "w": 0,
       "l": 6,
-      "d": 0
+      "d": 2
     }
   ],
   "matches": [
@@ -43,74 +43,32 @@
       "a": "greedy",
       "b": "greedy#2",
       "winner": "b",
-      "turns": 13,
-      "seed": null
-    },
-    {
-      "a": "greedy#2",
-      "b": "greedy",
-      "winner": "b",
-      "turns": 8,
-      "seed": null
-    },
-    {
-      "a": "greedy",
-      "b": "adapt",
-      "winner": "b",
-      "turns": 6,
-      "seed": null
-    },
-    {
-      "a": "adapt",
-      "b": "greedy",
-      "winner": "b",
-      "turns": 8,
-      "seed": null
-    },
-    {
-      "a": "greedy",
-      "b": "patient",
-      "winner": "b",
-      "turns": 11,
-      "seed": null
-    },
-    {
-      "a": "patient",
-      "b": "greedy",
-      "winner": "a",
-      "turns": 6,
-      "seed": null
-    },
-    {
-      "a": "greedy",
-      "b": "random",
-      "winner": "a",
       "turns": 7,
       "seed": null
     },
     {
-      "a": "random",
-      "b": "greedy",
-      "winner": "b",
-      "turns": 10,
-      "seed": null
-    },
-    {
       "a": "greedy#2",
-      "b": "adapt",
+      "b": "greedy",
       "winner": "a",
       "turns": 9,
       "seed": null
     },
     {
-      "a": "adapt",
-      "b": "greedy#2",
+      "a": "greedy",
+      "b": "adapt",
       "winner": "b",
       "turns": 8,
       "seed": null
     },
     {
-      "a": "greedy#2",
+      "a": "adapt",
+      "b": "greedy",
+      "winner": "b",
+      "turns": 8,
+      "seed": null
+    },
+    {
+      "a": "greedy",
       "b": "patient",
       "winner": "b",
       "turns": 10,
@@ -118,6 +76,48 @@
     },
     {
       "a": "patient",
+      "b": "greedy",
+      "winner": "a",
+      "turns": 6,
+      "seed": null
+    },
+    {
+      "a": "greedy",
+      "b": "random",
+      "winner": "a",
+      "turns": 10,
+      "seed": null
+    },
+    {
+      "a": "random",
+      "b": "greedy",
+      "winner": "b",
+      "turns": 7,
+      "seed": null
+    },
+    {
+      "a": "greedy#2",
+      "b": "adapt",
+      "winner": "a",
+      "turns": 7,
+      "seed": null
+    },
+    {
+      "a": "adapt",
+      "b": "greedy#2",
+      "winner": "b",
+      "turns": 7,
+      "seed": null
+    },
+    {
+      "a": "greedy#2",
+      "b": "patient",
+      "winner": "b",
+      "turns": 9,
+      "seed": null
+    },
+    {
+      "a": "patient",
       "b": "greedy#2",
       "winner": "a",
       "turns": 6,
@@ -126,15 +126,15 @@
     {
       "a": "greedy#2",
       "b": "random",
-      "winner": "a",
-      "turns": 14,
+      "winner": "draw",
+      "turns": 8,
       "seed": null
     },
     {
       "a": "random",
       "b": "greedy#2",
       "winner": "b",
-      "turns": 6,
+      "turns": 9,
       "seed": null
     },
     {
@@ -155,27 +155,27 @@
       "a": "adapt",
       "b": "random",
       "winner": "a",
+      "turns": 6,
+      "seed": null
+    },
+    {
+      "a": "random",
+      "b": "adapt",
+      "winner": "b",
       "turns": 8,
       "seed": null
     },
     {
-      "a": "random",
-      "b": "adapt",
-      "winner": "b",
-      "turns": 6,
-      "seed": null
-    },
-    {
       "a": "patient",
       "b": "random",
-      "winner": "b",
-      "turns": 13,
+      "winner": "draw",
+      "turns": 6,
       "seed": null
     },
     {
       "a": "random",
       "b": "patient",
-      "winner": "a",
+      "winner": "b",
       "turns": 6,
       "seed": null
     }

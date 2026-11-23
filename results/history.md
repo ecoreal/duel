@@ -7,3 +7,5 @@ rope: 2026-W45 — rope-greedy 1201.5
 rope: 2026-W46 — rope-greedy 1201.5
 2026-W47 — patient 1238.7 · greedy#2 1226.3 · greedy 1205.1
 rope: 2026-W47 — rope-greedy 1201.5
+2026-W48 — patient 1286.7 · greedy#2 1235.6 · greedy 1180.7
+rope: 2026-W48 — rope-greedy 1201.5
